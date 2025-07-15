@@ -1,36 +1,151 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧵 Customizer App Backend
 
-## Getting Started
+This project implements a simplified backend API for a product customization flow, inspired by Shopify-style product pages. Customers can customize t-shirts (color, message, font), and the data is saved per product using Supabase as the database.
 
-First, run the development server:
+Built using **Next.js (App Router)** and hosted locally or via your preferred platform.
+
+---
+
+## 🧠 Approach
+
+- **Frontend:** Uses shopify with custom button that opens a modal to customize a t-shirt
+    - Custom code: https://github.com/JeffreyAM/shopify-app-custom-codes
+    - Test Product: https://fqvyxf-a8.myshopify.com/products/customizable-tshirt-test-product
+    - Store Password is: `jeff123`
+- **Backend:** API endpoints accept and return customization data
+    - Next.js as backend
+    - Supabase as db
+- **Persistence:** Customizations are saved in Supabase with a generated token
+- **Integration Logic:** Token is stored in `localStorage` and reused to update
+
+---
+
+## 📦 API Endpoints
+
+### `POST /api/save-customization`
+
+Saves or updates a product customization.
+
+#### ✅ Request Body
+
+```json
+{
+  "color": "black",
+  "message": "My custom text",
+  "font": "Arial",
+  "shopify_product_id": "123456789",
+  "token": "optional-existing-token"
+}
+```
+
+* If `token` is provided, updates the existing record.
+* If not, creates a new record.
+
+#### 🔁 Response
+
+```json
+{
+  "token": "generated-or-updated-uuid"
+}
+```
+
+---
+
+### `GET /api/customization/:token`
+
+Retrieves a saved customization by its token.
+
+#### 🔍 Example
+
+```
+GET /api/customization/8cba99ae-f2bb-4dc0-bcd1-0174fa82a3aa
+```
+
+#### 🧾 Response
+
+```json
+{
+  "id": "8cba99ae-...",
+  "color": "black",
+  "message": "Hello world",
+  "font": "Courier New",
+  "shopify_product_id": "123456789",
+  "created_at": "2025-07-15T14:32:00.000Z"
+}
+```
+
+---
+
+## 🧱 Supabase Setup
+
+Run this SQL command in your Supabase SQL Editor to create the `customizations` table:
+
+```sql
+create table customizations (
+  id uuid primary key default gen_random_uuid(),
+  shopify_product_id text not null,
+  color text not null,
+  message text not null,
+  font text not null,
+  created_at timestamp with time zone default now()
+);
+```
+
+Enable RLS (Row-Level Security) if needed, and make sure your Supabase project has:
+
+* `NEXT_PUBLIC_SUPABASE_URL`
+* `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+---
+
+## 🧪 Running Locally
+
+1. Clone this repository
+
+```bash
+git clone https://github.com/JeffreyAM/customizer-app-backend
+cd customizer-app-backend
+```
+
+2. Install dependencies
+
+```bash
+npm install
+```
+
+3. Set up environment variables in `.env.local`
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SECRET_KEY=your-service-role-key
+```
+
+4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* API will be available at: `http://localhost:3000/api/...`
+* You can now test using Postman or connect from your Shopify frontend
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 CORS
 
-## Learn More
+All endpoints are CORS-enabled for access from:
 
-To learn more about Next.js, take a look at the following resources:
+```
+https://fqvyxf-a8.myshopify.com
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+To change the allowed origin, edit the `allowedOrigin` constant in each route file.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 📝 Notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* Token is stored in `localStorage` as:
+  `customizationToken-{shopify_product_id}`
+* Data is saved per product
