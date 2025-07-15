@@ -20,44 +20,42 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { color, message, font, shopify_product_id, token } = body;
-
-  // Basic validation
-  if (!color || !message || !font || !shopify_product_id) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
-  }
-
-  try {
-    if (token) {
-      // Update existing record
-      const { data, error } = await supabase
-        .from('customizations')
-        .update({ color, message, font, shopify_product_id })
-        .eq('id', token)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      return NextResponse.json({ token: data.id, updated: true });
-    } else {
-      // Insert new record if token is not provided
-      const { data, error } = await supabase
-        .from('customizations')
-        .insert([{ color, message, font, shopify_product_id }])
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      return NextResponse.json({ token: data.id, created: true });
+    const body = await req.json();
+    const { color, message, font, shopify_product_id, token } = body;
+  
+    if (!color || !message || !font || !shopify_product_id) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
-  } catch (err) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  
+    try {
+      let result;
+      if (token) {
+        result = await supabase
+          .from('customizations')
+          .update({ color, message, font, shopify_product_id })
+          .eq('id', token)
+          .select()
+          .single();
+      } else {
+        result = await supabase
+          .from('customizations')
+          .insert([{ color, message, font, shopify_product_id }])
+          .select()
+          .single();
+      }
+  
+      if (result.error) {
+        return NextResponse.json({ error: result.error.message }, { status: 500 });
+      }
+  
+      return new NextResponse(JSON.stringify({ token: result.data.id }), {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': allowedOrigin,
+          'Content-Type': 'application/json',
+        }
+      });
+    } catch (err) {
+      return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    }
   }
-}
