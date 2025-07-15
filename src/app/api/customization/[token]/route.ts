@@ -6,10 +6,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const allowedOrigin = 'https://fqvyxf-a8.myshopify.com'; // Your Shopify store
+const allowedOrigin = 'https://fqvyxf-a8.myshopify.com'; // your Shopify store
 
-export async function GET(req: NextRequest, context: { params: { token: string } }) {
-  const token = context.params.token;
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const segments = url.pathname.split('/');
+  const token = segments[segments.length - 1];
 
   if (!token) {
     return new NextResponse(JSON.stringify({ error: 'Token is required' }), {
@@ -46,7 +48,7 @@ export async function GET(req: NextRequest, context: { params: { token: string }
   });
 }
 
-// Preflight for CORS
+// CORS preflight
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
