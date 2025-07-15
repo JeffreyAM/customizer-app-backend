@@ -6,6 +6,19 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const allowedOrigin = 'https://fqvyxf-a8.myshopify.com'; // Harcodedcoded for testing purposes
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_FRONTEND_URL || allowedOrigin,
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
+}
+
 export async function POST(req: Request) {
   const body = await req.json();
   const { color, message, font, shopify_product_id, token } = body;
