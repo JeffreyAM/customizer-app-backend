@@ -6,7 +6,7 @@ export const runtime = "node";
 const PRINTFUL_URL = "https://api.printful.com/v2/catalog-products";
 const allowedOrigin = "https://customized-girl-edm.myshopify.com"; // your Shopify store
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
     const apiKey = process.env.PRINTFUL_API_KEY || 'xyD86qYWF2lZKRUdbOCfelfw8V4OX3Nd0zYnIipf';
     if (!apiKey) {
         return NextResponse.json({ error: "Missing API key" }, { status: 500 });
