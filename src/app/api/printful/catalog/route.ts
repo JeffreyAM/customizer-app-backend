@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
-export const runtime = "node";
-
 const PRINTFUL_URL = "https://api.printful.com/v2/catalog-products";
 const allowedOrigin = "https://customized-girl-edm.myshopify.com"; // your Shopify store
 
