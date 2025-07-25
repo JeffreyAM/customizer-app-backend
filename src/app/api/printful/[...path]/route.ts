@@ -4,20 +4,28 @@ import axios from 'axios';
 const PRINTFUL_API_BASE = 'https://api.printful.com';
 const ALLOWED_ORIGIN = 'https://customized-girl-edm.myshopify.com';
 
-export async function GET(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxyRequest(req, context.params.path.join('/'), 'GET');
+type RouteContext = {
+  params: Promise<{ path: string[] }>;
+};
+
+export async function GET(req: NextRequest, context: RouteContext) {
+  const params = await context.params;
+  return proxyRequest(req, params.path.join('/'), 'GET');
 }
 
-export async function POST(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxyRequest(req, context.params.path.join('/'), 'POST');
+export async function POST(req: NextRequest, context: RouteContext) {
+  const params = await context.params;
+  return proxyRequest(req, params.path.join('/'), 'POST');
 }
 
-export async function PUT(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxyRequest(req, context.params.path.join('/'), 'PUT');
+export async function PUT(req: NextRequest, context: RouteContext) {
+  const params = await context.params;
+  return proxyRequest(req, params.path.join('/'), 'PUT');
 }
 
-export async function DELETE(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxyRequest(req, context.params.path.join('/'), 'DELETE');
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  const params = await context.params;
+  return proxyRequest(req, params.path.join('/'), 'DELETE');
 }
 
 export async function OPTIONS() {
