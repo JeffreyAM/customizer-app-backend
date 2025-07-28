@@ -17,7 +17,7 @@ export default function Home() {
               href="/dashboard"
               className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
             >
-              Access Template Dashboard
+              Open Dashboard
             </Link>
             
             <div className="bg-white p-6 rounded-lg shadow-sm text-left">
@@ -28,14 +28,14 @@ export default function Home() {
                     POST /api/shopify/template
                   </code>
                   <br />
-                  <span className="text-xs">Process Shopify template requests</span>
+                  <span className="text-xs">Process saved design templates</span>
                 </li>
                 <li>
                   <code className="bg-gray-100 px-2 py-1 rounded text-xs">
                     GET /api/templates
                   </code>
                   <br />
-                  <span className="text-xs">Fetch saved templates</span>
+                  <span className="text-xs">Fetch saved design templates</span>
                 </li>
                 <li>
                   <code className="bg-gray-100 px-2 py-1 rounded text-xs">
