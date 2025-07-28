@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 const PRINTFUL_API_BASE = 'https://api.printful.com';
 const ALLOWED_ORIGIN = 'https://customized-girl-edm.myshopify.com';
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const templateData = templateResponse.data.result;
+    const templateData = (templateResponse.data as any).result;
 
     // Extract relevant information
     const productTitle = templateData.product_title || templateData.title || 'Unknown Product';
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const imageUrl = templateData.image_url || templateData.preview_url || null;
 
     // Save to database
-    const { data: savedTemplate, error: dbError } = await supabaseAdmin
+    const { data: savedTemplate, error: dbError } = await supabase
       .from('templates')
       .upsert({
         template_id: templateId,
