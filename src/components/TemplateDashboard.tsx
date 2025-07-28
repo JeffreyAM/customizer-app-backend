@@ -57,7 +57,7 @@ export default function TemplateDashboard() {
             <h1 className="text-3xl font-bold text-gray-900">Template Dashboard</h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Welcome, {user?.email}
+                Welcome, Admin
               </span>
               <button
                 onClick={signOut}
@@ -151,12 +151,11 @@ export default function TemplateDashboard() {
               </h3>
               <div className="mt-2 max-w-xl text-sm text-gray-500">
                 <p>
-                  Send POST requests to <code className="bg-gray-100 px-1 rounded">/api/shopify/template</code> with:
+                  Send POST requests to <code className="bg-gray-100 px-1 rounded">/api/shopify/template</code> from Shopify with:
                 </p>
                 <pre className="mt-2 p-3 bg-gray-50 rounded text-xs">
 {`{
-  "templateId": "your-template-id",
-  "userId": "${user?.id || 'optional-user-id'}"
+  "templateId": "your-template-id"
 }`}
                 </pre>
               </div>
