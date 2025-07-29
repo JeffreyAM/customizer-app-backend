@@ -20,6 +20,8 @@ export default function TemplateDashboard() {
   }, []);
 
   const fetchTemplates = async () => {
+    setLoading(true);
+    setError('');
     try {
       const response = await fetch('/api/templates');
       const data = await response.json();
@@ -221,8 +223,8 @@ export default function TemplateDashboard() {
                 </p>
                 <pre className="mt-2 p-3 bg-gray-50 rounded text-xs">
 {`{
-  "templateId": "your-template-id",
-  "productId": "product-id-for-mockup",
+  "templateId": "template-id-returned-by-printful",
+  "productId": "product-id",
   "user": {
     "name": "Customer Name",
     "email": "customer@example.com",
@@ -231,17 +233,17 @@ export default function TemplateDashboard() {
 }`}
                 </pre>
                 <div className="mt-2 text-xs">
-                  <p><strong>Required:</strong> <code>templateId</code></p>
-                  <p><strong>Optional:</strong> <code>productId</code> (for mockup generation), <code>user</code> (for tracking)</p>
+                  <p><strong>Required:</strong> <code>templateId</code>, <code>productId</code>, <code>user</code> (for tracking)</p>
                   <p className="mt-1 text-gray-400">Templates are automatically saved to the database. Mockup images are generated in the background if not immediately available.</p>
                 </div>
               </div>
               <div className="mt-3">
                 <button
                   onClick={fetchTemplates}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                  disabled={loading}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium"
                 >
-                  Refresh Templates
+                  {loading ? 'Refreshing...' : 'Refresh Templates'}
                 </button>
               </div>
             </div>
