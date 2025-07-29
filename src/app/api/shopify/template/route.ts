@@ -54,6 +54,19 @@ export async function POST(req: NextRequest) {
       validateStatus: () => true,
     });
 
+    if (mockupGenResponse.status !== 200) {
+      return NextResponse.json(
+        { error: 'Failed to fetch template from Printful', details: mockupGenResponse.data },
+        {
+          status: mockupGenResponse.status,
+          headers: {
+            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
     // Fetch template data from Printful
     const templateResponse = await axios.get(
       `${PRINTFUL_API_BASE}/mockup-generator/templates/${templateId}`,
