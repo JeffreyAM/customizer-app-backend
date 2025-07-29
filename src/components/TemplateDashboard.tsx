@@ -221,9 +221,20 @@ export default function TemplateDashboard() {
                 </p>
                 <pre className="mt-2 p-3 bg-gray-50 rounded text-xs">
 {`{
-  "templateId": "your-template-id"
+  "templateId": "your-template-id",
+  "productId": "product-id-for-mockup",
+  "user": {
+    "name": "Customer Name",
+    "email": "customer@example.com",
+    "timestamp": "2024-01-01T00:00:00Z"
+  }
 }`}
                 </pre>
+                <div className="mt-2 text-xs">
+                  <p><strong>Required:</strong> <code>templateId</code></p>
+                  <p><strong>Optional:</strong> <code>productId</code> (for mockup generation), <code>user</code> (for tracking)</p>
+                  <p className="mt-1 text-gray-400">Templates are automatically saved to the database. Mockup images are generated in the background if not immediately available.</p>
+                </div>
               </div>
               <div className="mt-3">
                 <button
