@@ -16,6 +16,56 @@ export async function OPTIONS() {
   });
 }
 
+// Helper function to create or get user
+async function createOrGetUser(user: any) {
+  if (!user || !user.name || !user.email) {
+    return null;
+  }
+
+  try {
+    // First, check if user already exists by email
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', user.email)
+      .single();
+
+    if (existingUser) {
+      // User already exists, return their ID
+      console.log('Using existing user:', existingUser.id);
+      return existingUser.id;
+    } else if (checkError && checkError.code === 'PGRST116') {
+      // User doesn't exist (no rows returned), create new user
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert({
+          name: user.name,
+          email: user.email,
+          created_at: user.timestamp || new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('Error creating user:', createError);
+        throw createError;
+      }
+
+      console.log('Created new user:', newUser.id);
+      return newUser.id;
+    } else if (checkError) {
+      // Some other error occurred
+      console.error('Error checking for existing user:', checkError);
+      throw checkError;
+    }
+  } catch (error) {
+    console.error('Error in createOrGetUser:', error);
+    throw error;
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -99,6 +149,16 @@ export async function POST(req: NextRequest) {
     const variantOptions = templateData.variant_options || templateData.options || {};
     const imageUrl = templateData.mockup_file_url || null;
 
+    // Create or get user ID
+    let userId = null;
+    try {
+      userId = await createOrGetUser(user);
+    } catch (userError) {
+      console.error('User creation/retrieval failed:', userError);
+      // Continue with template saving even if user creation fails
+      // You can change this behavior based on your requirements
+    }
+
     // Save to database
     const { data: savedTemplate, error: dbError } = await supabase
       .from('templates')
@@ -107,7 +167,7 @@ export async function POST(req: NextRequest) {
         product_title: productTitle,
         variant_options: variantOptions,
         image_url: imageUrl,
-        user_id: user || null,
+        user_id: userId, // Use the created/found user ID
         updated_at: new Date().toISOString(),
       })
       .select()
@@ -132,6 +192,7 @@ export async function POST(req: NextRequest) {
         success: true,
         template: savedTemplate,
         printfulData: templateData,
+        userId: userId, // Include the user ID in the response
       },
       {
         status: 200,
@@ -147,7 +208,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'Server error', details: error.message },
       {
-        status: 500,
+      status: 500,
         headers: {
           'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
           'Content-Type': 'application/json',
