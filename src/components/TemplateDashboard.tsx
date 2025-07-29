@@ -8,6 +8,8 @@ export default function TemplateDashboard() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const { user, signOut } = useAuth();
 
   useEffect(() => {
@@ -39,6 +41,16 @@ export default function TemplateDashboard() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleTemplateClick = (template: Template) => {
+    setSelectedTemplate(template);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedTemplate(null);
   };
 
   if (loading) {
@@ -97,7 +109,11 @@ export default function TemplateDashboard() {
             ) : (
               <ul className="divide-y divide-gray-200">
                 {templates.map((template) => (
-                  <li key={template.id} className="px-4 py-4 sm:px-6">
+                  <li 
+                    key={template.id} 
+                    className="px-4 py-4 sm:px-6 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => handleTemplateClick(template)}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         {template.image_url && (
@@ -171,6 +187,95 @@ export default function TemplateDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Modal */}
+      {showModal && selectedTemplate && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Template Image */}
+                {selectedTemplate.image_url && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Preview</h4>
+                    <img
+                      className="w-full h-48 object-cover rounded-lg border"
+                      src={selectedTemplate.image_url}
+                      alt={selectedTemplate.product_title}
+                    />
+                  </div>
+                )}
+                
+                {/* Template Info */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Template Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-600">Product Title:</span>
+                      <p className="text-gray-900">{selectedTemplate.product_title}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Template ID:</span>
+                      <p className="text-gray-900 font-mono text-xs">{selectedTemplate.template_id}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Created:</span>
+                      <p className="text-gray-900">{formatDate(selectedTemplate.created_at)}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Updated:</span>
+                      <p className="text-gray-900">{formatDate(selectedTemplate.updated_at)}</p>
+                    </div>
+                    {selectedTemplate.user_id && (
+                      <div>
+                        <span className="font-medium text-gray-600">User ID:</span>
+                        <p className="text-gray-900 font-mono text-xs">{selectedTemplate.user_id}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Template Data */}
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Complete Template Data</h4>
+                <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border">
+                  {JSON.stringify(selectedTemplate, null, 2)}
+                </pre>
+              </div>
+              
+              {/* Variant Options */}
+              {selectedTemplate.variant_options && Object.keys(selectedTemplate.variant_options).length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Variant Options</h4>
+                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border">
+                    {JSON.stringify(selectedTemplate.variant_options, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={closeModal}
+                className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
