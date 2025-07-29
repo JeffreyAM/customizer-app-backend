@@ -10,6 +10,9 @@ export default function TemplateDashboard() {
   const [error, setError] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [userDetails, setUserDetails] = useState<{name: string, email: string} | null>(null);
+  const [completeTemplateData, setCompleteTemplateData] = useState<any>(null);
+  const [modalLoading, setModalLoading] = useState(false);
   const { user, signOut } = useAuth();
 
   useEffect(() => {
@@ -43,14 +46,61 @@ export default function TemplateDashboard() {
     });
   };
 
-  const handleTemplateClick = (template: Template) => {
+  const fetchUserDetails = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}`);
+      if (response.ok) {
+        const userData = await response.json();
+        setUserDetails(userData.user);
+      } else {
+        console.error('Failed to fetch user details');
+        setUserDetails(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      setUserDetails(null);
+    }
+  };
+
+  const fetchCompleteTemplateData = async (templateId: string) => {
+    try {
+      const response = await fetch(`https://customizer-app-backend.vercel.app/api/printful/product-templates/${templateId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCompleteTemplateData(data);
+      } else {
+        console.error('Failed to fetch complete template data');
+        setCompleteTemplateData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching complete template data:', error);
+      setCompleteTemplateData(null);
+    }
+  };
+
+  const handleTemplateClick = async (template: Template) => {
     setSelectedTemplate(template);
     setShowModal(true);
+    setModalLoading(true);
+    setUserDetails(null);
+    setCompleteTemplateData(null);
+
+    // Fetch user details if user_id exists
+    if (template.user_id) {
+      await fetchUserDetails(template.user_id);
+    }
+
+    // Fetch complete template data from Printful API
+    await fetchCompleteTemplateData(template.template_id);
+
+    setModalLoading(false);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setSelectedTemplate(null);
+    setUserDetails(null);
+    setCompleteTemplateData(null);
   };
 
   if (loading) {
@@ -238,18 +288,46 @@ export default function TemplateDashboard() {
                     </div>
                     {selectedTemplate.user_id && (
                       <div>
-                        <span className="font-medium text-gray-600">User ID:</span>
-                        <p className="text-gray-900 font-mono text-xs">{selectedTemplate.user_id}</p>
+                        <span className="font-medium text-gray-600">User:</span>
+                        {modalLoading ? (
+                          <p className="text-gray-500 text-sm">Loading user details...</p>
+                        ) : userDetails ? (
+                          <div className="text-gray-900">
+                            <p className="font-medium">{userDetails.name}</p>
+                            <p className="text-sm text-gray-600">{userDetails.email}</p>
+                            <p className="text-xs text-gray-400 font-mono">ID: {selectedTemplate.user_id}</p>
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">User details not available</p>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
               </div>
               
-              {/* Template Data */}
+              {/* Complete Template Data from Printful */}
               <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Complete Template Data</h4>
-                <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Complete Template Data (from Printful API)</h4>
+                {modalLoading ? (
+                  <div className="bg-gray-50 p-4 rounded-lg border flex items-center justify-center">
+                    <p className="text-gray-500 text-sm">Loading complete template data...</p>
+                  </div>
+                ) : completeTemplateData ? (
+                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64">
+                    {JSON.stringify(completeTemplateData, null, 2)}
+                  </pre>
+                ) : (
+                  <div className="bg-gray-50 p-4 rounded-lg border">
+                    <p className="text-gray-500 text-sm">Complete template data not available</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Local Template Data */}
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Local Template Data</h4>
+                <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64">
                   {JSON.stringify(selectedTemplate, null, 2)}
                 </pre>
               </div>
