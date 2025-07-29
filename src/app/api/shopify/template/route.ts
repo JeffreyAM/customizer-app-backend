@@ -17,7 +17,7 @@ export async function OPTIONS() {
 }
 
 // Helper function to create or get user
-async function createOrGetUser(user: any) {
+async function createOrGetUser(user: any): Promise<string | null> {
   if (!user || !user.name || !user.email) {
     return null;
   }
@@ -28,42 +28,46 @@ async function createOrGetUser(user: any) {
       .from('users')
       .select('id')
       .eq('email', user.email)
-      .single();
+      .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors when no rows found
+
+    if (checkError) {
+      console.error('Error checking for existing user:', checkError);
+      throw checkError;
+    }
 
     if (existingUser) {
       // User already exists, return their ID
       console.log('Using existing user:', existingUser.id);
       return existingUser.id;
-    } else if (checkError && checkError.code === 'PGRST116') {
-      // User doesn't exist (no rows returned), create new user
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert({
-          name: user.name,
-          email: user.email,
-          created_at: user.timestamp || new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (createError) {
-        console.error('Error creating user:', createError);
-        throw createError;
-      }
-
-      console.log('Created new user:', newUser.id);
-      return newUser.id;
-    } else if (checkError) {
-      // Some other error occurred
-      console.error('Error checking for existing user:', checkError);
-      throw checkError;
     }
-  } catch (error) {
-    console.error('Error in createOrGetUser:', error);
-    throw error;
-  }
 
-  return null;
+    // User doesn't exist, create new user
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert({
+        name: user.name,
+        email: user.email,
+        created_at: user.timestamp || new Date().toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (createError) {
+      console.error('Error creating user:', createError);
+      throw createError;
+    }
+
+    if (!newUser || !newUser.id) {
+      throw new Error('User created but no ID returned');
+    }
+
+    console.log('Created new user:', newUser.id);
+    return newUser.id;
+
+  } catch (error: any) {
+    console.error('Error in createOrGetUser:', error);
+    throw new Error(`User operation failed: ${error.message}`);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -149,14 +153,27 @@ export async function POST(req: NextRequest) {
     const variantOptions = templateData.variant_options || templateData.options || {};
     const imageUrl = templateData.mockup_file_url || null;
 
-    // Create or get user ID
+    // Create or get user ID - this MUST succeed if user data is provided
     let userId = null;
-    try {
-      userId = await createOrGetUser(user);
-    } catch (userError) {
-      console.error('User creation/retrieval failed:', userError);
-      // Continue with template saving even if user creation fails
-      // You can change this behavior based on your requirements
+    if (user && user.name && user.email) {
+      try {
+        userId = await createOrGetUser(user);
+        if (!userId) {
+          throw new Error('Failed to create or retrieve user');
+        }
+      } catch (userError) {
+        console.error('User creation/retrieval failed:', userError);
+        return NextResponse.json(
+          { error: 'Failed to create user', details: (userError as Error).message },
+          {
+            status: 500,
+            headers: {
+              'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
     }
 
     // Save to database
@@ -167,7 +184,7 @@ export async function POST(req: NextRequest) {
         product_title: productTitle,
         variant_options: variantOptions,
         image_url: imageUrl,
-        user_id: userId, // Use the created/found user ID
+        user_id: userId, // Use the created/found user ID (or null if no user provided)
         updated_at: new Date().toISOString(),
       })
       .select()
