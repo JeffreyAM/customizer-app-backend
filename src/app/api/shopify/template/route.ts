@@ -19,7 +19,11 @@ export async function OPTIONS() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { templateId, userId } = body;
+    const {
+      templateId,
+      user,
+      productId,
+    } = body;
 
     if (!templateId) {
       return NextResponse.json(
@@ -36,12 +40,27 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.PRINTFUL_API_KEY || 'xyD86qYWF2lZKRUdbOCfelfw8V4OX3Nd0zYnIipf';
 
+
+    const mockupGenResponse = await axios.request({
+      url: `${PRINTFUL_API_BASE}/mockup-generator/create-task/${productId}`,
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'X-PF-Store-Id': 0,
+      },
+      data: {
+        product_template_id: templateId
+      },
+      validateStatus: () => true,
+    });
+
     // Fetch template data from Printful
     const templateResponse = await axios.get(
       `${PRINTFUL_API_BASE}/mockup-generator/templates/${templateId}`,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
+          'X-PF-Store-Id': 0,
         },
         validateStatus: () => true,
       }
@@ -75,7 +94,7 @@ export async function POST(req: NextRequest) {
         product_title: productTitle,
         variant_options: variantOptions,
         image_url: imageUrl,
-        user_id: userId || null,
+        user_id: user || null,
         updated_at: new Date().toISOString(),
       })
       .select()
