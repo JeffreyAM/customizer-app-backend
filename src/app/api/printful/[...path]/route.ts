@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
 const PRINTFUL_API_BASE = 'https://api.printful.com';
-const ALLOWED_ORIGIN = 'https://customized-girl-edm.myshopify.com';
+const ALLOWED_ORIGINS = [
+  'https://customized-girl-edm.myshopify.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001'
+];
 
 type RouteContext = {
   params: Promise<{ path: string[] }>;
 };
 
-function getRequestOrigin(req: NextRequest): string | '' {
-  return req.headers.get('origin') || '';
+function getRequestOrigin(req: NextRequest): string {
+  const origin = req.headers.get('origin') || '';
+  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
 }
 
 

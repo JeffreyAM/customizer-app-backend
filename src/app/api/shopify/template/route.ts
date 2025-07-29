@@ -3,7 +3,18 @@ import axios from 'axios';
 import { supabase } from '@/lib/supabase';
 
 const PRINTFUL_API_BASE = 'https://api.printful.com';
-const ALLOWED_ORIGIN = 'https://customized-girl-edm.myshopify.com';
+const ALLOWED_ORIGINS = [
+  'https://customized-girl-edm.myshopify.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001'
+];
+
+function getAllowedOrigin(req: NextRequest): string {
+  const origin = req.headers.get('origin') || '';
+  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+}
 
 // Background function to update mockup URL when it becomes available
 async function updateMockupUrlInBackground(templateId: string, apiKey: string, maxRetries: number = 8): Promise<void> {
@@ -66,11 +77,11 @@ async function updateMockupUrlInBackground(templateId: string, apiKey: string, m
   console.log(`Background: Mockup URL not available after ${maxRetries} attempts for template ${templateId}`);
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+      'Access-Control-Allow-Origin': getAllowedOrigin(req),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
@@ -146,7 +157,7 @@ export async function POST(req: NextRequest) {
         {
           status: 400,
           headers: {
-            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+            'Access-Control-Allow-Origin': getAllowedOrigin(req),
             'Content-Type': 'application/json',
           },
         }
@@ -175,7 +186,7 @@ export async function POST(req: NextRequest) {
         {
           status: mockupGenResponse.status,
           headers: {
-            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+            'Access-Control-Allow-Origin': getAllowedOrigin(req),
             'Content-Type': 'application/json',
           },
         }
@@ -201,7 +212,7 @@ export async function POST(req: NextRequest) {
         {
           status: templateResponse.status,
           headers: {
-            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+            'Access-Control-Allow-Origin': getAllowedOrigin(req),
             'Content-Type': 'application/json',
           },
         }
@@ -239,7 +250,7 @@ export async function POST(req: NextRequest) {
           {
             status: 500,
             headers: {
-              'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+              'Access-Control-Allow-Origin': getAllowedOrigin(req),
               'Content-Type': 'application/json',
             },
           }
@@ -268,7 +279,7 @@ export async function POST(req: NextRequest) {
         {
           status: 500,
           headers: {
-            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+            'Access-Control-Allow-Origin': getAllowedOrigin(req),
             'Content-Type': 'application/json',
           },
         }
@@ -285,7 +296,7 @@ export async function POST(req: NextRequest) {
       {
         status: 200,
         headers: {
-          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Access-Control-Allow-Origin': getAllowedOrigin(req),
           'Content-Type': 'application/json',
         },
       }
@@ -298,7 +309,7 @@ export async function POST(req: NextRequest) {
       {
       status: 500,
         headers: {
-          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Access-Control-Allow-Origin': getAllowedOrigin(req),
           'Content-Type': 'application/json',
         },
       }
