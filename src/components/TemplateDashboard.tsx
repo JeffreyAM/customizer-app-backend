@@ -257,9 +257,9 @@ export default function TemplateDashboard() {
                 {/* Template Image */}
                 {selectedTemplate.image_url && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Preview</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Mockup Image</h4>
                     <img
-                      className="w-full h-48 object-cover rounded-lg border"
+                      className="w-full h-78 object-contain rounded-lg border"
                       src={selectedTemplate.image_url}
                       alt={selectedTemplate.product_title}
                     />
@@ -314,7 +314,7 @@ export default function TemplateDashboard() {
                     <p className="text-gray-500 text-sm">Loading complete template data...</p>
                   </div>
                 ) : completeTemplateData ? (
-                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64">
+                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
                     {JSON.stringify(completeTemplateData, null, 2)}
                   </pre>
                 ) : (
@@ -327,7 +327,7 @@ export default function TemplateDashboard() {
               {/* Local Template Data */}
               <div className="mt-6">
                 <h4 className="text-sm font-medium text-gray-900 mb-2">Local Template Data</h4>
-                <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64">
+                <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
                   {JSON.stringify(selectedTemplate, null, 2)}
                 </pre>
               </div>
@@ -336,7 +336,7 @@ export default function TemplateDashboard() {
               {selectedTemplate.variant_options && Object.keys(selectedTemplate.variant_options).length > 0 && (
                 <div className="mt-6">
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Variant Options</h4>
-                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border">
+                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border text-gray-500">
                     {JSON.stringify(selectedTemplate.variant_options, null, 2)}
                   </pre>
                 </div>
