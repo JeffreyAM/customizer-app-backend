@@ -8,6 +8,11 @@ type RouteContext = {
   params: Promise<{ path: string[] }>;
 };
 
+function getRequestOrigin(req: NextRequest): string | '' {
+  return req.headers.get('origin') || '';
+}
+
+
 export async function GET(req: NextRequest, context: RouteContext) {
   const params = await context.params;
   return proxyRequest(req, params.path.join('/'), 'GET');
@@ -28,16 +33,19 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
   return proxyRequest(req, params.path.join('/'), 'DELETE');
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
+  const origin = getRequestOrigin(req);
+
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
 }
+
 
 async function proxyRequest(req: NextRequest, subpath: string, method: string) {
   const apiKey =
@@ -64,7 +72,7 @@ async function proxyRequest(req: NextRequest, subpath: string, method: string) {
     return NextResponse.json(response.data, {
       status: response.status,
       headers: {
-        'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+        'Access-Control-Allow-Origin': getRequestOrigin(req),
         'Content-Type': 'application/json',
       },
     });
@@ -74,7 +82,7 @@ async function proxyRequest(req: NextRequest, subpath: string, method: string) {
       {
         status: 500,
         headers: {
-          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Access-Control-Allow-Origin': getRequestOrigin(req),
           'Content-Type': 'application/json',
         },
       }
