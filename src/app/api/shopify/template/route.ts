@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.PRINTFUL_API_KEY || 'xyD86qYWF2lZKRUdbOCfelfw8V4OX3Nd0zYnIipf';
 
-
+    /* Comment out the mockup generation step for now
     const mockupGenResponse = await axios.request({
       url: `${PRINTFUL_API_BASE}/mockup-generator/create-task/${productId}`,
       method: 'POST',
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     if (mockupGenResponse.status !== 200) {
       return NextResponse.json(
-        { error: 'Failed to fetch template from Printful', details: mockupGenResponse.data },
+        { error: 'Failed to create mockup from Printful', details: mockupGenResponse.data },
         {
           status: mockupGenResponse.status,
           headers: {
@@ -65,11 +65,11 @@ export async function POST(req: NextRequest) {
           },
         }
       );
-    }
+    }*/
 
     // Fetch template data from Printful
     const templateResponse = await axios.get(
-      `${PRINTFUL_API_BASE}/mockup-generator/templates/${templateId}`,
+      `${PRINTFUL_API_BASE}/product-templates/${templateId}`,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -95,9 +95,9 @@ export async function POST(req: NextRequest) {
     const templateData = (templateResponse.data as any).result;
 
     // Extract relevant information
-    const productTitle = templateData.product_title || templateData.title || 'Unknown Product';
+    const productTitle = templateData.title || 'Unknown Product';
     const variantOptions = templateData.variant_options || templateData.options || {};
-    const imageUrl = templateData.image_url || templateData.preview_url || null;
+    const imageUrl = templateData.mockup_file_url || null;
 
     // Save to database
     const { data: savedTemplate, error: dbError } = await supabase
