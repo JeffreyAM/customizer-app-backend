@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'X-PF-Store-Id': 0,
+        'X-PF-Store-Id': 16414489,
       },
       data: {
         product_template_id: templateId
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          'X-PF-Store-Id': 0,
+          'X-PF-Store-Id': 16414489,
         },
         validateStatus: () => true,
       }
