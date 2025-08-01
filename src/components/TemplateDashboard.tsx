@@ -1,16 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from './AuthProvider';
-import { Template } from '@/lib/supabase';
+import { useState, useEffect } from "react";
+import { useAuth } from "./AuthProvider";
+import { Template } from "@/lib/supabase";
 
 export default function TemplateDashboard() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [error, setError] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null
+  );
   const [showModal, setShowModal] = useState(false);
-  const [userDetails, setUserDetails] = useState<{name: string, email: string} | null>(null);
+  const [userDetails, setUserDetails] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
   const [completeTemplateData, setCompleteTemplateData] = useState<any>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const { user, signOut } = useAuth();
@@ -21,15 +26,15 @@ export default function TemplateDashboard() {
 
   const fetchTemplates = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const response = await fetch('/api/templates');
+      const response = await fetch("/api/templates");
       const data = await response.json();
-      
+
       if (response.ok) {
         setTemplates(data.templates);
       } else {
-        setError(data.error || 'Failed to fetch templates');
+        setError(data.error || "Failed to fetch templates");
       }
     } catch (err: any) {
       setError(err.message);
@@ -39,12 +44,12 @@ export default function TemplateDashboard() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -55,27 +60,30 @@ export default function TemplateDashboard() {
         const userData = await response.json();
         setUserDetails(userData.user);
       } else {
-        console.error('Failed to fetch user details');
+        console.error("Failed to fetch user details");
         setUserDetails(null);
       }
     } catch (error) {
-      console.error('Error fetching user details:', error);
+      console.error("Error fetching user details:", error);
       setUserDetails(null);
     }
   };
 
   const fetchCompleteTemplateData = async (templateId: string) => {
     try {
-      const response = await fetch(`https://customizer-app-backend.vercel.app/api/printful/product-templates/${templateId}`);
+      const response = await fetch(
+        `https://customizer-app-backend.vercel.app/api/printful/product-templates/${templateId}`
+      );
+
       if (response.ok) {
         const data = await response.json();
         setCompleteTemplateData(data);
       } else {
-        console.error('Failed to fetch complete template data');
+        console.error("Failed to fetch complete template data");
         setCompleteTemplateData(null);
       }
     } catch (error) {
-      console.error('Error fetching complete template data:', error);
+      console.error("Error fetching complete template data:", error);
       setCompleteTemplateData(null);
     }
   };
@@ -118,11 +126,11 @@ export default function TemplateDashboard() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">Template Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Template Dashboard
+            </h1>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, Admin
-              </span>
+              <span className="text-sm text-gray-600">Welcome, Admin</span>
               <button
                 onClick={signOut}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -148,21 +156,22 @@ export default function TemplateDashboard() {
                 Printful Saved Designs
               </h3>
               <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Saved Designs ({templates.length} total)
+                Saved Designs ({templates.length} total)
               </p>
             </div>
 
             {templates.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-500">
-                  No Saved Designs found. Saved Designs will appear here when received from Shopify.
+                  No Saved Designs found. Saved Designs will appear here when
+                  received from Shopify.
                 </div>
               </div>
             ) : (
               <ul className="divide-y divide-gray-200">
                 {templates.map((template) => (
-                  <li 
-                    key={template.id} 
+                  <li
+                    key={template.id}
                     className="px-4 py-4 sm:px-6 hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => handleTemplateClick(template)}
                   >
@@ -189,23 +198,29 @@ export default function TemplateDashboard() {
                       </div>
                       <div className="flex-shrink-0">
                         <div className="text-sm text-gray-500">
-                          {Object.keys(template.variant_options || {}).length} variants
+                          {Object.keys(template.variant_options || {}).length}{" "}
+                          variants
                         </div>
                       </div>
                     </div>
-                    
-                    {template.variant_options && Object.keys(template.variant_options).length > 0 && (
-                      <div className="mt-2 ml-20">
-                        <details className="text-sm text-gray-600">
-                          <summary className="cursor-pointer hover:text-gray-800">
-                            View variant options
-                          </summary>
-                          <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-x-auto">
-                            {JSON.stringify(template.variant_options, null, 2)}
-                          </pre>
-                        </details>
-                      </div>
-                    )}
+
+                    {template.variant_options &&
+                      Object.keys(template.variant_options).length > 0 && (
+                        <div className="mt-2 ml-20">
+                          <details className="text-sm text-gray-600">
+                            <summary className="cursor-pointer hover:text-gray-800">
+                              View variant options
+                            </summary>
+                            <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-x-auto">
+                              {JSON.stringify(
+                                template.variant_options,
+                                null,
+                                2
+                              )}
+                            </pre>
+                          </details>
+                        </div>
+                      )}
                   </li>
                 ))}
               </ul>
@@ -219,10 +234,14 @@ export default function TemplateDashboard() {
               </h3>
               <div className="mt-2 max-w-xl text-sm text-gray-500">
                 <p>
-                  Send POST requests to <code className="bg-gray-100 px-1 rounded">/api/shopify/template</code> from Shopify with:
+                  Send POST requests to{" "}
+                  <code className="bg-gray-100 px-1 rounded">
+                    /api/shopify/template
+                  </code>{" "}
+                  from Shopify with:
                 </p>
                 <pre className="mt-2 p-3 bg-gray-50 rounded text-xs">
-{`{
+                  {`{
   "templateId": "template-id-returned-by-printful",
   "productId": "product-id",
   "user": {
@@ -233,8 +252,15 @@ export default function TemplateDashboard() {
 }`}
                 </pre>
                 <div className="mt-2 text-xs">
-                  <p><strong>Required:</strong> <code>templateId</code>, <code>productId</code>, <code>user</code> (for tracking)</p>
-                  <p className="mt-1 text-gray-400">Templates are automatically saved to the database. Mockup images are generated in the background if not immediately available.</p>
+                  <p>
+                    <strong>Required:</strong> <code>templateId</code>,{" "}
+                    <code>productId</code>, <code>user</code> (for tracking)
+                  </p>
+                  <p className="mt-1 text-gray-400">
+                    Templates are automatically saved to the database. Mockup
+                    images are generated in the background if not immediately
+                    available.
+                  </p>
                 </div>
               </div>
               <div className="mt-3">
@@ -243,7 +269,7 @@ export default function TemplateDashboard() {
                   disabled={loading}
                   className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium"
                 >
-                  {loading ? 'Refreshing...' : 'Refresh Templates'}
+                  {loading ? "Refreshing..." : "Refresh Templates"}
                 </button>
               </div>
             </div>
@@ -256,7 +282,9 @@ export default function TemplateDashboard() {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Template Details
+              </h3>
               <button
                 onClick={closeModal}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
@@ -264,13 +292,15 @@ export default function TemplateDashboard() {
                 ×
               </button>
             </div>
-            
+
             <div className="max-h-96 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Template Image */}
                 {selectedTemplate.image_url && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Mockup Image</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Mockup Image
+                    </h4>
                     <img
                       className="w-full h-78 object-contain rounded-lg border"
                       src={selectedTemplate.image_url}
@@ -278,53 +308,83 @@ export default function TemplateDashboard() {
                     />
                   </div>
                 )}
-                
+
                 {/* Template Info */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Template Information</h4>
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                    Template Information
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <div>
-                      <span className="font-medium text-gray-600">Product Title:</span>
-                      <p className="text-gray-900">{selectedTemplate.product_title}</p>
+                      <span className="font-medium text-gray-600">
+                        Product Title:
+                      </span>
+                      <p className="text-gray-900">
+                        {selectedTemplate.product_title}
+                      </p>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-600">Template ID:</span>
-                      <p className="text-gray-900 font-mono text-xs">{selectedTemplate.template_id}</p>
+                      <span className="font-medium text-gray-600">
+                        Template ID:
+                      </span>
+                      <p className="text-gray-900 font-mono text-xs">
+                        {selectedTemplate.template_id}
+                      </p>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-600">Created:</span>
-                      <p className="text-gray-900">{formatDate(selectedTemplate.created_at)}</p>
+                      <span className="font-medium text-gray-600">
+                        Created:
+                      </span>
+                      <p className="text-gray-900">
+                        {formatDate(selectedTemplate.created_at)}
+                      </p>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-600">Updated:</span>
-                      <p className="text-gray-900">{formatDate(selectedTemplate.updated_at)}</p>
+                      <span className="font-medium text-gray-600">
+                        Updated:
+                      </span>
+                      <p className="text-gray-900">
+                        {formatDate(selectedTemplate.updated_at)}
+                      </p>
                     </div>
                     {selectedTemplate.user_id && (
                       <div>
                         <span className="font-medium text-gray-600">User:</span>
                         {modalLoading ? (
-                          <p className="text-gray-500 text-sm">Loading user details...</p>
+                          <p className="text-gray-500 text-sm">
+                            Loading user details...
+                          </p>
                         ) : userDetails ? (
                           <div className="text-gray-900">
                             <p className="font-medium">{userDetails.name}</p>
-                            <p className="text-sm text-gray-600">{userDetails.email}</p>
-                            <p className="text-xs text-gray-400 font-mono">ID: {selectedTemplate.user_id}</p>
+                            <p className="text-sm text-gray-600">
+                              {userDetails.email}
+                            </p>
+                            <p className="text-xs text-gray-400 font-mono">
+                              ID: {selectedTemplate.user_id}
+                            </p>
                           </div>
                         ) : (
-                          <p className="text-gray-500 text-sm">User details not available</p>
+                          <p className="text-gray-500 text-sm">
+                            User details not available
+                          </p>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-              
+
               {/* Complete Template Data from Printful */}
               <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Complete Template Data (from Printful API)</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-2">
+                  Complete Template Data (from Printful API)
+                </h4>
                 {modalLoading ? (
                   <div className="bg-gray-50 p-4 rounded-lg border flex items-center justify-center">
-                    <p className="text-gray-500 text-sm">Loading complete template data...</p>
+                    <p className="text-gray-500 text-sm">
+                      Loading complete template data...
+                    </p>
                   </div>
                 ) : completeTemplateData ? (
                   <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
@@ -332,36 +392,157 @@ export default function TemplateDashboard() {
                   </pre>
                 ) : (
                   <div className="bg-gray-50 p-4 rounded-lg border">
-                    <p className="text-gray-500 text-sm">Complete template data not available</p>
+                    <p className="text-gray-500 text-sm">
+                      Complete template data not available
+                    </p>
                   </div>
                 )}
               </div>
 
               {/* Local Template Data */}
               <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Local Template Data</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-2">
+                  Local Template Data
+                </h4>
                 <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
                   {JSON.stringify(selectedTemplate, null, 2)}
                 </pre>
               </div>
-              
+
               {/* Variant Options */}
-              {selectedTemplate.variant_options && Object.keys(selectedTemplate.variant_options).length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Variant Options</h4>
-                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border text-gray-500">
-                    {JSON.stringify(selectedTemplate.variant_options, null, 2)}
-                  </pre>
-                </div>
-              )}
+              {selectedTemplate.variant_options &&
+                Object.keys(selectedTemplate.variant_options).length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Variant Options
+                    </h4>
+                    <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border text-gray-500">
+                      {JSON.stringify(
+                        selectedTemplate.variant_options,
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                )}
             </div>
-            
+
             <div className="mt-6 flex justify-end">
               <button
                 onClick={closeModal}
                 className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
               >
                 Close
+              </button>
+
+              <button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white mx-2 px-4 py-2 rounded-md text-sm font-medium"
+                onClick={async () => {
+                  if (!selectedTemplate) return;
+
+                  console.log("🧪 selectedTemplate:", selectedTemplate);
+
+                  const res = await fetch(
+                    `/api/printful/product-templates/${selectedTemplate.template_id}`
+                  );
+                  const templateData = await res.json();
+
+                  console.log("📦 Template Data:", templateData);
+
+                  const catalog_product_id = templateData?.result?.product_id;
+
+                  console.log(
+                    "🆔 Extracted catalog_product_id:",
+                    catalog_product_id
+                  );
+
+                  if (
+                    !catalog_product_id ||
+                    isNaN(Number(catalog_product_id))
+                  ) {
+                    alert("❌ Missing or invalid catalog_product_id");
+                    return;
+                  }
+
+                  const variantIds = (
+                    selectedTemplate.variant_options || []
+                  ).filter((id) => typeof id === "number" && !isNaN(id));
+
+                  const validPlacements: string[] =
+                    templateData?.result?.placements?.map(
+                      (p: any) => p.placement
+                    ) || [];
+
+                  const placement = validPlacements[0];
+
+                  const files = [
+                    {
+                      placement,
+                      image_url: selectedTemplate.image_url,
+                      position: {
+                        area_width: 1800,
+                        area_height: 2400,
+                        width: 1800,
+                        height: 2400,
+                        top: 0,
+                        left: 0,
+                      },
+                    },
+                  ];
+
+                  console.log("Selected Variant IDs:", variantIds);
+                  console.log("Product ID:", catalog_product_id);
+
+                  if (!catalog_product_id) {
+                    alert("❌ Missing or invalid catalog_product_id");
+                    return;
+                  }
+
+                  if (variantIds.length === 0) {
+                    alert("❌ No valid variant IDs found");
+                    return;
+                  }
+
+                  if (!files.length || !files[0].image_url) {
+                    alert("❌ Missing design file");
+                    return;
+                  }
+
+                  try {
+                    setModalLoading(true);
+
+                    const res = await fetch("/api/printful/mockup", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        catalog_product_id,
+                        variant_ids: variantIds,
+                        files,
+                      }),
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok && data.task_key) {
+                      alert(
+                        `✅ Mockup task created!\nTask ID: ${data.task_key}`
+                      );
+                      // Optional: trigger polling with task_key
+                    } else {
+                      alert(
+                        `❌ Failed to create mockup: ${
+                          data.error || "Unknown error"
+                        }`
+                      );
+                    }
+                  } catch (err: any) {
+                    alert(`❌ Network or server error: ${err.message}`);
+                  } finally {
+                    setModalLoading(false);
+                  }
+                }}
+              >
+                {modalLoading ? "Creating..." : "Create Mockup"}
               </button>
             </div>
           </div>

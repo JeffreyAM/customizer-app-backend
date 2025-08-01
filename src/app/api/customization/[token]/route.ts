@@ -60,7 +60,6 @@ export async function GET(req: NextRequest) {
   });
 }
 
-//test
 // CORS preflight
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
