@@ -466,7 +466,9 @@ export default function TemplateDashboard() {
 
                   const variantIds = (
                     selectedTemplate.variant_options || []
-                  ).filter((id) => typeof id === "number" && !isNaN(id));
+                  ).filter(
+                    (id: number) => typeof id === "number" && !isNaN(id)
+                  );
 
                   const validPlacements: string[] =
                     templateData?.result?.placements?.map(
