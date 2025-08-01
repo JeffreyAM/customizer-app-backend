@@ -436,7 +436,12 @@ export default function TemplateDashboard() {
               </button>
 
               <button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white mx-2 px-4 py-2 rounded-md text-sm font-medium"
+                className={`${
+                  modalLoading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-700"
+                } text-white mx-2 px-4 py-2 rounded-md text-sm font-medium`}
+                disabled={modalLoading}
                 onClick={async () => {
                   if (!selectedTemplate) return;
 
@@ -544,7 +549,7 @@ export default function TemplateDashboard() {
                   }
                 }}
               >
-                {modalLoading ? "Creating..." : "Create Mockup"}
+                {modalLoading ? "Loading..." : "Create Mockup"}
               </button>
             </div>
           </div>
