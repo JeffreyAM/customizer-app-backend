@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const STORE_ID = 16414489;
@@ -65,7 +66,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ task_key: data.result?.task_key });
+    const task_key = data.result?.task_key;
+
+    // Store in Supabase
+    const { error: dbError } = await supabase
+      .from("mockup_tasks")
+      .insert([{ task_key }]);
+
+    if (dbError) {
+      console.error("Supabase insert error:", dbError);
+      return NextResponse.json(
+        { error: "Failed to store task" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ task_key });
   } catch (error: any) {
     console.error("Mockup API error:", error);
     return NextResponse.json(
