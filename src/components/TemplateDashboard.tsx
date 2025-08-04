@@ -1,16 +1,35 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import { useAuth } from "./AuthProvider";
 import { Template } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+
+interface MockupData {
+  id: string;
+  task_key: string;
+  created_at: string;
+  templates: {
+    id: string;
+    product_title: string;
+    image_url: string;
+  }[];
+}
 
 export default function TemplateDashboard() {
+  const [mockupData, setMockupData] = useState<MockupData[]>([]);
+  const [pollingStatus, setPollingStatus] = useState("");
+  const [isPolling, setIsPolling] = useState(false);
+  const [mockupResult, setMockupResult] = useState(null);
+
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     null
   );
+  const [mockupTask, setMockupTask] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
   const [userDetails, setUserDetails] = useState<{
     name: string;
@@ -21,7 +40,37 @@ export default function TemplateDashboard() {
   const { user, signOut } = useAuth();
 
   useEffect(() => {
+    const fetchMockupData = async () => {
+      const { data, error } = await supabase
+        .from("mockup_tasks")
+        .select(
+          `
+          id,
+          task_key,
+          created_at,
+          templates:template_id (
+            id,
+            product_title,
+            image_url
+          )
+          `
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Supabase fetch error:", error);
+        toast.error("Failed to fetch mockup tasks from Supabase.");
+      } else {
+        setMockupData(data);
+      }
+    };
+
+    fetchMockupData();
+  }, []);
+
+  useEffect(() => {
     fetchTemplates();
+    fetchTasks();
   }, []);
 
   const fetchTemplates = async () => {
@@ -35,11 +84,25 @@ export default function TemplateDashboard() {
         setTemplates(data.templates);
       } else {
         setError(data.error || "Failed to fetch templates");
+        toast.error(data.error || "Failed to fetch templates");
       }
     } catch (err: any) {
       setError(err.message);
+      toast.error(`Error fetching templates: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const response = await fetch("/api/mockup-tasks");
+      const data = await response.json();
+      return data.tasks;
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      toast.error("Error fetching mockup tasks.");
+      return [];
     }
   };
 
@@ -62,10 +125,12 @@ export default function TemplateDashboard() {
       } else {
         console.error("Failed to fetch user details");
         setUserDetails(null);
+        toast.error("Failed to fetch user details.");
       }
     } catch (error) {
       console.error("Error fetching user details:", error);
       setUserDetails(null);
+      toast.error("Error fetching user details.");
     }
   };
 
@@ -81,10 +146,14 @@ export default function TemplateDashboard() {
       } else {
         console.error("Failed to fetch complete template data");
         setCompleteTemplateData(null);
+        toast.error(
+          "Failed to fetch complete template data from Printful API."
+        );
       }
     } catch (error) {
       console.error("Error fetching complete template data:", error);
       setCompleteTemplateData(null);
+      toast.error("Error fetching complete template data from Printful API.");
     }
   };
 
@@ -94,6 +163,7 @@ export default function TemplateDashboard() {
     setModalLoading(true);
     setUserDetails(null);
     setCompleteTemplateData(null);
+    setMockupTask(null);
 
     // Fetch user details if user_id exists
     if (template.user_id) {
@@ -103,7 +173,68 @@ export default function TemplateDashboard() {
     // Fetch complete template data from Printful API
     await fetchCompleteTemplateData(template.template_id);
 
+    // Fetch mockup task associated with this template
+    const taskRes = await fetch("/api/mockup-tasks");
+    const taskData = await taskRes.json();
+    const matchingTask = taskData.tasks.find(
+      (task: any) => task.template_id === template.id
+    );
+
+    setMockupTask(matchingTask || null);
     setModalLoading(false);
+  };
+
+  const pollMockupTask = async (taskKey: string) => {
+    setIsPolling(true);
+    toast.loading("Polling started...");
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = 5000;
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/printful/task-status/${taskKey}`);
+        const data = await res.json();
+
+        setPollingStatus(`Status: ${data.status}`);
+        toast.success(`Task status: ${data.status}`, { id: "polling-toast" });
+
+        if (data.status === "completed") {
+          const resultRes = await fetch(`/api/printful/task-result/${taskKey}`);
+          const resultData = await resultRes.json();
+          setMockupResult(resultData);
+          setPollingStatus("✅ Task completed");
+          setIsPolling(false);
+          toast.success("Task completed successfully!", {
+            id: "polling-toast",
+          });
+        } else if (data.status === "failed") {
+          setPollingStatus("❌ Task failed");
+          setIsPolling(false);
+          toast.error("Task failed. Please check the logs.", {
+            id: "polling-toast",
+          });
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(checkStatus, interval);
+        } else {
+          setPollingStatus("⏰ Timeout: Task took too long");
+          setIsPolling(false);
+          toast.error("Timeout: Task took too long to complete.", {
+            id: "polling-toast",
+          });
+        }
+      } catch (error) {
+        console.error("Polling error:", error);
+        setPollingStatus("⚠️ Polling failed");
+        setIsPolling(false);
+        toast.error("Polling failed due to a network or server error.", {
+          id: "polling-toast",
+        });
+      }
+    };
+
+    checkStatus();
   };
 
   const closeModal = () => {
@@ -123,6 +254,7 @@ export default function TemplateDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster />
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -265,7 +397,11 @@ export default function TemplateDashboard() {
               </div>
               <div className="mt-3">
                 <button
-                  onClick={fetchTemplates}
+                  onClick={() => {
+                    fetchTemplates();
+                    fetchTasks();
+                    toast.success("Templates refreshed!");
+                  }}
                   disabled={loading}
                   className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium"
                 >
@@ -292,7 +428,6 @@ export default function TemplateDashboard() {
                 ×
               </button>
             </div>
-
             <div className="max-h-96 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Template Image */}
@@ -425,6 +560,38 @@ export default function TemplateDashboard() {
                     </pre>
                   </div>
                 )}
+
+              {/* Mockup Tasks */}
+              {mockupTask?.task_key && (
+                <div className="mt-4">
+                  <button
+                    className={`${
+                      isPolling
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    } text-white px-4 py-2 rounded-md text-sm font-medium`}
+                    onClick={() => pollMockupTask(mockupTask.task_key)}
+                    disabled={isPolling}
+                  >
+                    {isPolling ? "Polling..." : "Poll Task Status"}
+                  </button>
+                  {pollingStatus && (
+                    <p className="mt-2 text-sm text-gray-700">
+                      {pollingStatus}
+                    </p>
+                  )}
+                  {mockupResult && (
+                    <div className="mt-2">
+                      <h5 className="text-sm font-semibold text-gray-800">
+                        Mockup Result:
+                      </h5>
+                      <pre className="bg-gray-100 p-2 rounded text-xs text-gray-600 max-h-64 overflow-auto">
+                        {JSON.stringify(mockupResult, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-end">
@@ -465,7 +632,7 @@ export default function TemplateDashboard() {
                     !catalog_product_id ||
                     isNaN(Number(catalog_product_id))
                   ) {
-                    alert("❌ Missing or invalid catalog_product_id");
+                    toast.error("Missing or invalid catalog_product_id");
                     return;
                   }
 
@@ -478,7 +645,7 @@ export default function TemplateDashboard() {
                   const validPlacements: string[] =
                     templateData?.result?.placements?.map(
                       (p: any) => p.placement
-                    ) || [];
+                    ) || "front";
 
                   const placement = validPlacements[0];
 
@@ -501,17 +668,17 @@ export default function TemplateDashboard() {
                   console.log("Product ID:", catalog_product_id);
 
                   if (!catalog_product_id) {
-                    alert("❌ Missing or invalid catalog_product_id");
+                    toast.error("Missing or invalid catalog_product_id");
                     return;
                   }
 
                   if (variantIds.length === 0) {
-                    alert("❌ No valid variant IDs found");
+                    toast.error("No valid variant IDs found");
                     return;
                   }
 
                   if (!files.length || !files[0].image_url) {
-                    alert("❌ Missing design file");
+                    toast.error("Missing design file");
                     return;
                   }
 
@@ -531,19 +698,19 @@ export default function TemplateDashboard() {
                     const data = await res.json();
 
                     if (res.ok && data.task_key) {
-                      alert(
-                        `✅ Mockup task created!\nTask ID: ${data.task_key}`
+                      toast.success(
+                        `Mockup task created! Task ID: ${data.task_key}`
                       );
                       // Optional: trigger polling with task_key
                     } else {
-                      alert(
-                        `❌ Failed to create mockup: ${
+                      toast.error(
+                        `Failed to create mockup: ${
                           data.error || "Unknown error"
                         }`
                       );
                     }
                   } catch (err: any) {
-                    alert(`❌ Network or server error: ${err.message}`);
+                    toast.error(`Network or server error: ${err.message}`);
                   } finally {
                     setModalLoading(false);
                   }

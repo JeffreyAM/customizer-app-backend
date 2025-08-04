@@ -14,9 +14,10 @@ export async function POST(req: NextRequest) {
       files,
       format = "png",
       width = 1000,
+      template_id,
     } = body;
 
-    // Validate input
+    // Validate requirements
     if (
       !catalog_product_id ||
       isNaN(Number(catalog_product_id)) ||
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Use the correct Printful API endpoint for mockup generation
+    //Printful API endpoint for mockup generation
     const apiUrl = `https://api.printful.com/mockup-generator/create-task/${catalog_product_id}`;
 
     const payload = {
@@ -68,10 +69,9 @@ export async function POST(req: NextRequest) {
 
     const task_key = data.result?.task_key;
 
-    // Store in Supabase
     const { error: dbError } = await supabase
       .from("mockup_tasks")
-      .insert([{ task_key }]);
+      .insert([{ task_key, template_id }]);
 
     if (dbError) {
       console.error("Supabase insert error:", dbError);

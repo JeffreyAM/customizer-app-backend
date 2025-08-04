@@ -20,6 +20,7 @@ export default function Home() {
               Open Dashboard
             </Link>
             
+            
             <div className="bg-white p-6 rounded-lg shadow-sm text-left">
               <h3 className="font-semibold text-gray-900 mb-3">API Endpoints:</h3>
               <ul className="space-y-2 text-sm text-gray-600">

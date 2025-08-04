@@ -33,3 +33,5 @@ CREATE TABLE mockup_tasks (
   task_key text NOT NULL,
   created_at timestamp with time zone DEFAULT timezone('utc', now())
 );
+
+
