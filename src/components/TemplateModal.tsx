@@ -10,12 +10,8 @@ interface TemplateModalProps {
   userDetails: UserDetails | null;
   modalLoading: boolean;
   mockupTask: any;
-  mockupResult: any;
-  pollingStatus: string;
-  isPolling: boolean;
   completeTemplateData: any;
   onClose: () => void;
-  onPoll: (taskKey: string) => void;
   onFetchData: (template: Template) => Promise<void>;
 }
 
@@ -24,15 +20,14 @@ export default function TemplateModal({
   userDetails,
   modalLoading,
   mockupTask,
-  mockupResult,
-  pollingStatus,
-  isPolling,
   completeTemplateData,
   onClose,
-  onPoll,
   onFetchData,
 }: TemplateModalProps) {
   const [creatingMockup, setCreatingMockup] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const [mockupResult, setMockupResult] = useState<any>(null);
+  const [pollingStatus, setPollingStatus] = useState("");
 
   const handleCreateMockup = async () => {
     if (!selectedTemplate) return;
@@ -101,12 +96,63 @@ export default function TemplateModal({
     }
   };
 
+  const pollMockupTask = async (taskKey: string) => {
+    setIsPolling(true);
+    toast.loading("Polling started...");
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = 5000;
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/printful/task-status/${taskKey}`);
+        const data = await res.json();
+
+        setPollingStatus(`Status: ${data.status}`);
+        toast.success(`Task status: ${data.status}`, { id: "polling-toast" });
+
+        if (data.status === "completed") {
+          const resultRes = await fetch(`/api/printful/task-result/${taskKey}`);
+          const resultData = await resultRes.json();
+          setMockupResult(resultData);
+          setPollingStatus("✅ Task completed");
+          setIsPolling(false);
+        } else if (data.status === "failed") {
+          setPollingStatus("❌ Task failed");
+          setIsPolling(false);
+          toast.error("Task failed.");
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(checkStatus, interval);
+        } else {
+          setPollingStatus("⏰ Timeout");
+          setIsPolling(false);
+          toast.error("Polling timeout.");
+        }
+      } catch (error) {
+        setPollingStatus("⚠️ Polling failed");
+        setIsPolling(false);
+        toast.error("Polling failed.");
+      }
+    };
+
+    checkStatus();
+  };
+
+  const onCloseModal = () => {
+    setCreatingMockup(false);
+    setIsPolling(false);
+    setMockupResult(null);
+    setPollingStatus("");
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
+          <button onClick={onCloseModal} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
             ×
           </button>
         </div>
@@ -203,7 +249,7 @@ export default function TemplateModal({
                 className={`${
                   isPolling ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                 } text-white px-4 py-2 rounded-md text-sm font-medium`}
-                onClick={() => onPoll(mockupTask.task_key)}
+                // onClick={() => onPoll(mockupTask.task_key)}
                 disabled={isPolling}
               >
                 {isPolling ? "Polling..." : "Poll Task Status"}

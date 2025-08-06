@@ -20,9 +20,6 @@ export default function TemplateDashboard() {
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [completeTemplateData, setCompleteTemplateData] = useState<any>(null);
   const [mockupTask, setMockupTask] = useState<any>(null);
-  const [mockupResult, setMockupResult] = useState<any>(null);
-  const [pollingStatus, setPollingStatus] = useState("");
-  const [isPolling, setIsPolling] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
@@ -85,8 +82,6 @@ export default function TemplateDashboard() {
     setUserDetails(null);
     setCompleteTemplateData(null);
     setMockupTask(null);
-    setMockupResult(null);
-    setPollingStatus("");
 
     if (template.user_id) {
       await fetchUserDetails(template.user_id, setUserDetails);
@@ -101,57 +96,12 @@ export default function TemplateDashboard() {
     setModalLoading(false);
   };
 
-  const pollMockupTask = async (taskKey: string) => {
-    setIsPolling(true);
-    toast.loading("Polling started...");
-    let attempts = 0;
-    const maxAttempts = 20;
-    const interval = 5000;
-
-    const checkStatus = async () => {
-      try {
-        const res = await fetch(`/api/printful/task-status/${taskKey}`);
-        const data = await res.json();
-
-        setPollingStatus(`Status: ${data.status}`);
-        toast.success(`Task status: ${data.status}`, { id: "polling-toast" });
-
-        if (data.status === "completed") {
-          const resultRes = await fetch(`/api/printful/task-result/${taskKey}`);
-          const resultData = await resultRes.json();
-          setMockupResult(resultData);
-          setPollingStatus("✅ Task completed");
-          setIsPolling(false);
-        } else if (data.status === "failed") {
-          setPollingStatus("❌ Task failed");
-          setIsPolling(false);
-          toast.error("Task failed.");
-        } else if (attempts < maxAttempts) {
-          attempts++;
-          setTimeout(checkStatus, interval);
-        } else {
-          setPollingStatus("⏰ Timeout");
-          setIsPolling(false);
-          toast.error("Polling timeout.");
-        }
-      } catch (error) {
-        setPollingStatus("⚠️ Polling failed");
-        setIsPolling(false);
-        toast.error("Polling failed.");
-      }
-    };
-
-    checkStatus();
-  };
-
   const closeModal = () => {
     setShowModal(false);
     setSelectedTemplate(null);
     setUserDetails(null);
     setCompleteTemplateData(null);
-    setMockupResult(null);
     setMockupTask(null);
-    setPollingStatus("");
   };
 
   return (
@@ -198,12 +148,8 @@ export default function TemplateDashboard() {
           userDetails={userDetails}
           modalLoading={modalLoading}
           mockupTask={mockupTask}
-          mockupResult={mockupResult}
-          pollingStatus={pollingStatus}
-          isPolling={isPolling}
           completeTemplateData={completeTemplateData}
           onClose={closeModal}
-          onPoll={pollMockupTask}
           onFetchData={handleTemplateClick}
         />
       )}
