@@ -139,6 +139,50 @@ export default function TemplateDashboard() {
               <TemplateList templates={templates} onTemplateClick={handleTemplateClick} />
             )}
           </div>
+          <div className="mt-6 bg-white shadow sm:rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">API Integration</h3>
+              <div className="mt-2 max-w-xl text-sm text-gray-500">
+                <p>
+                  Send POST requests to <code className="bg-gray-100 px-1 rounded">/api/shopify/template</code> from
+                  Shopify with:
+                </p>
+                <pre className="mt-2 p-3 bg-gray-50 rounded text-xs">
+                  {`{
+  "templateId": "template-id-returned-by-printful",
+  "productId": "product-id",
+  "user": {
+    "name": "Customer Name",
+    "email": "customer@example.com",
+    "timestamp": "2024-01-01T00:00:00Z"
+  }
+}`}
+                </pre>
+                <div className="mt-2 text-xs">
+                  <p>
+                    <strong>Required:</strong> <code>templateId</code>, <code>productId</code>, <code>user</code> (for
+                    tracking)
+                  </p>
+                  <p className="mt-1 text-gray-400">
+                    Templates are automatically saved to the database. Mockup images are generated in the background if
+                    not immediately available.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <button
+                  onClick={() => {
+                    fetchTemplates();
+                    toast.success("Templates refreshed!");
+                  }}
+                  disabled={loading}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  {loading ? "Refreshing..." : "Refresh Templates"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
 
