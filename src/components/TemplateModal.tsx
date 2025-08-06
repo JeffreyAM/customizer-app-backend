@@ -124,11 +124,7 @@ export default function TemplateModal({
         setPollingStatus(`Status: ${status}`);
 
         if (status === "completed") {
-          const response = await fetch(`/api/mockup-results/${taskKey}`);
-          const data = await response.json();
-          if (response.ok && data.mockup_result) {
-            setMockupResult(data.mockup_result);
-          }
+          await fetchMockupResult(taskKey);
 
           setPollingStatus(
             `✅ Task completed <a href='#mockup-result' class='text-blue-600 underline'>View Result</a>`
@@ -165,6 +161,23 @@ export default function TemplateModal({
     }
   };
 
+  const fetchMockupResult = async (taskKey?: string) => {
+    try {
+      if (!taskKey) {
+        const mockupTaskResponse = await fetch(`/api/mockup-tasks?template_id=${selectedTemplate.id}&status=completed`);
+        const mockupTaskData = await mockupTaskResponse.json();
+        taskKey = mockupTaskData.tasks?.[0]?.task_key;
+      }
+
+      const response = await fetch(`/api/mockup-results/${taskKey}`);
+      const data = await response.json();
+      setMockupResult(data?.mockup_result || null);
+    } catch (error) {
+      console.error("Error fetching mockup result:", error);
+      setMockupResult(null);
+    }
+  };
+
   const onCloseModal = () => {
     setCreatingMockup(false);
     setIsPolling(false);
@@ -175,6 +188,8 @@ export default function TemplateModal({
 
   useEffect(() => {
     isMounted.current = true;
+
+    fetchMockupResult();
     if (pendingMockupTask?.task_key) {
       pollMockupTask(pendingMockupTask.task_key);
     }
