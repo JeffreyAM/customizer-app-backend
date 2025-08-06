@@ -90,8 +90,8 @@ export default function TemplateDashboard() {
     await fetchCompleteTemplateData(template.template_id);
 
     const tasks = await fetchMockupTasks();
-    const matchingTask = tasks.find((task: any) => task.template_id === template.id);
-    setMockupTask(matchingTask || null);
+    const matchingTask = tasks?.[0] || null;
+    setMockupTask(matchingTask);
 
     setModalLoading(false);
   };
