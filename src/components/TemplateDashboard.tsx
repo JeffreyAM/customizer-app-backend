@@ -1,74 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useAuth } from "./AuthProvider";
-import { Template } from "@/lib/supabase";
-import { supabase } from "@/lib/supabase";
-
-interface MockupData {
-  id: string;
-  task_key: string;
-  created_at: string;
-  templates: {
-    id: string;
-    product_title: string;
-    image_url: string;
-  }[];
-}
+import { Template, MockupData, UserDetails } from "../types";
+import { formatDate, fetchUserDetails } from "../utils/common";
+import TemplateList from "./TemplateList";
+import TemplateModal from "./TemplateModal";
 
 export default function TemplateDashboard() {
-  const [mockupData, setMockupData] = useState<MockupData[]>([]);
-  const [pollingStatus, setPollingStatus] = useState("");
-  const [isPolling, setIsPolling] = useState(false);
-  const [mockupResult, setMockupResult] = useState(null);
+  const { user, signOut } = useAuth();
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [mockupTask, setMockupTask] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
-  const [userDetails, setUserDetails] = useState<{
-    name: string;
-    email: string;
-  } | null>(null);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [completeTemplateData, setCompleteTemplateData] = useState<any>(null);
+  const [mockupTask, setMockupTask] = useState<any>(null);
+  const [mockupResult, setMockupResult] = useState<any>(null);
+  const [pollingStatus, setPollingStatus] = useState("");
+  const [isPolling, setIsPolling] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
-  const { user, signOut } = useAuth();
-
-  useEffect(() => {
-    const fetchMockupData = async () => {
-      const { data, error } = await supabase
-        .from("mockup_tasks")
-        .select(
-          `
-          id,
-          task_key,
-          created_at,
-          templates:template_id (
-            id,
-            product_title,
-            image_url
-          )
-          `
-        )
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Supabase fetch error:", error);
-        toast.error("Failed to fetch mockup tasks from Supabase.");
-      } else {
-        setMockupData(data);
-      }
-    };
-
-    fetchMockupData();
-  }, []);
 
   useEffect(() => {
     fetchTemplates();
-    fetchTasks();
   }, []);
 
   const fetchTemplates = async () => {
@@ -92,64 +50,31 @@ export default function TemplateDashboard() {
     }
   };
 
-  const fetchTasks = async () => {
-    try {
-      const response = await fetch("/api/mockup-tasks");
-      const data = await response.json();
-      return data.tasks;
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-      toast.error("Error fetching mockup tasks.");
-      return [];
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const fetchUserDetails = async (userId: string) => {
-    try {
-      const response = await fetch(`/api/users/${userId}`);
-      if (response.ok) {
-        const userData = await response.json();
-        setUserDetails(userData.user);
-      } else {
-        console.error("Failed to fetch user details");
-        setUserDetails(null);
-        toast.error("Failed to fetch user details.");
-      }
-    } catch (error) {
-      console.error("Error fetching user details:", error);
-      setUserDetails(null);
-      toast.error("Error fetching user details.");
-    }
-  };
-
   const fetchCompleteTemplateData = async (templateId: string) => {
     try {
-      const response = await fetch(
-        `https://customizer-app-backend.vercel.app/api/printful/product-templates/${templateId}`
-      );
+      const response = await fetch(`/api/printful/product-templates/${templateId}`);
 
       if (response.ok) {
         const data = await response.json();
         setCompleteTemplateData(data);
       } else {
-        console.error("Failed to fetch complete template data");
         setCompleteTemplateData(null);
-        toast.error("Failed to fetch complete template data from Printful API.");
+        toast.error("Failed to fetch complete template data.");
       }
     } catch (error) {
-      console.error("Error fetching complete template data:", error);
       setCompleteTemplateData(null);
-      toast.error("Error fetching complete template data from Printful API.");
+      toast.error("Error fetching complete template data.");
+    }
+  };
+
+  const fetchMockupTasks = async () => {
+    try {
+      const response = await fetch("/api/mockup-tasks");
+      const data = await response.json();
+      return data.tasks || [];
+    } catch (error) {
+      toast.error("Error fetching mockup tasks.");
+      return [];
     }
   };
 
@@ -160,21 +85,19 @@ export default function TemplateDashboard() {
     setUserDetails(null);
     setCompleteTemplateData(null);
     setMockupTask(null);
+    setMockupResult(null);
+    setPollingStatus("");
 
-    // Fetch user details if user_id exists
     if (template.user_id) {
-      await fetchUserDetails(template.user_id);
+      await fetchUserDetails(template.user_id, setUserDetails);
     }
 
-    // Fetch complete template data from Printful API
     await fetchCompleteTemplateData(template.template_id);
 
-    // Fetch mockup task associated with this template
-    const taskRes = await fetch("/api/mockup-tasks");
-    const taskData = await taskRes.json();
-    const matchingTask = taskData.tasks.find((task: any) => task.template_id === template.id);
-
+    const tasks = await fetchMockupTasks();
+    const matchingTask = tasks.find((task: any) => task.template_id === template.id);
     setMockupTask(matchingTask || null);
+
     setModalLoading(false);
   };
 
@@ -199,32 +122,22 @@ export default function TemplateDashboard() {
           setMockupResult(resultData);
           setPollingStatus("✅ Task completed");
           setIsPolling(false);
-          toast.success("Task completed successfully!", {
-            id: "polling-toast",
-          });
         } else if (data.status === "failed") {
           setPollingStatus("❌ Task failed");
           setIsPolling(false);
-          toast.error("Task failed. Please check the logs.", {
-            id: "polling-toast",
-          });
+          toast.error("Task failed.");
         } else if (attempts < maxAttempts) {
           attempts++;
           setTimeout(checkStatus, interval);
         } else {
-          setPollingStatus("⏰ Timeout: Task took too long");
+          setPollingStatus("⏰ Timeout");
           setIsPolling(false);
-          toast.error("Timeout: Task took too long to complete.", {
-            id: "polling-toast",
-          });
+          toast.error("Polling timeout.");
         }
       } catch (error) {
-        console.error("Polling error:", error);
         setPollingStatus("⚠️ Polling failed");
         setIsPolling(false);
-        toast.error("Polling failed due to a network or server error.", {
-          id: "polling-toast",
-        });
+        toast.error("Polling failed.");
       }
     };
 
@@ -236,15 +149,10 @@ export default function TemplateDashboard() {
     setSelectedTemplate(null);
     setUserDetails(null);
     setCompleteTemplateData(null);
+    setMockupResult(null);
+    setMockupTask(null);
+    setPollingStatus("");
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading templates...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -275,340 +183,29 @@ export default function TemplateDashboard() {
               <h3 className="text-lg leading-6 font-medium text-gray-900">Printful Saved Designs</h3>
               <p className="mt-1 max-w-2xl text-sm text-gray-500">Saved Designs ({templates.length} total)</p>
             </div>
-
-            {templates.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-500">
-                  No Saved Designs found. Saved Designs will appear here when received from Shopify.
-                </div>
-              </div>
+            {loading ? (
+              <div className="text-center py-12 text-gray-500">Loading templates...</div>
             ) : (
-              <ul className="divide-y divide-gray-200">
-                {templates.map((template) => (
-                  <li
-                    key={template.id}
-                    className="px-4 py-4 sm:px-6 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => handleTemplateClick(template)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        {template.image_url && (
-                          <img
-                            className="h-16 w-16 rounded-lg object-cover mr-4"
-                            src={template.image_url}
-                            alt={template.product_title}
-                          />
-                        )}
-                        <div>
-                          <p className="text-sm font-medium text-indigo-600 truncate">{template.product_title}</p>
-                          <p className="text-sm text-gray-500">Template ID: {template.template_id}</p>
-                          <p className="text-xs text-gray-400">{formatDate(template.created_at)}</p>
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <div className="text-sm text-gray-500">
-                          {Object.keys(template.variant_options || {}).length} variants
-                        </div>
-                      </div>
-                    </div>
-
-                    {template.variant_options && Object.keys(template.variant_options).length > 0 && (
-                      <div className="mt-2 ml-20">
-                        <details className="text-sm text-gray-600">
-                          <summary className="cursor-pointer hover:text-gray-800">View variant options</summary>
-                          <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-x-auto">
-                            {JSON.stringify(template.variant_options, null, 2)}
-                          </pre>
-                        </details>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <TemplateList templates={templates} onTemplateClick={handleTemplateClick} />
             )}
-          </div>
-
-          <div className="mt-6 bg-white shadow sm:rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">API Integration</h3>
-              <div className="mt-2 max-w-xl text-sm text-gray-500">
-                <p>
-                  Send POST requests to <code className="bg-gray-100 px-1 rounded">/api/shopify/template</code> from
-                  Shopify with:
-                </p>
-                <pre className="mt-2 p-3 bg-gray-50 rounded text-xs">
-                  {`{
-                    "templateId": "template-id-returned-by-printful",
-                    "productId": "product-id",
-                    "user": {
-                      "name": "Customer Name",
-                      "email": "customer@example.com",
-                      "timestamp": "2024-01-01T00:00:00Z"
-                    }
-                  }`}
-                </pre>
-                <div className="mt-2 text-xs">
-                  <p>
-                    <strong>Required:</strong> <code>templateId</code>, <code>productId</code>, <code>user</code> (for
-                    tracking)
-                  </p>
-                  <p className="mt-1 text-gray-400">
-                    Templates are automatically saved to the database. Mockup images are generated in the background if
-                    not immediately available.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3">
-                <button
-                  onClick={() => {
-                    fetchTemplates();
-                    fetchTasks();
-                    toast.success("Templates refreshed!");
-                  }}
-                  disabled={loading}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  {loading ? "Refreshing..." : "Refresh Templates"}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </main>
 
-      {/* Modal */}
       {showModal && selectedTemplate && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                ×
-              </button>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Template Image */}
-                {selectedTemplate.image_url && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Mockup Image</h4>
-                    <img
-                      className="w-full h-78 object-contain rounded-lg border"
-                      src={selectedTemplate.image_url}
-                      alt={selectedTemplate.product_title}
-                    />
-                  </div>
-                )}
-
-                {/* Template Info */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Template Information</h4>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-600">Product Title:</span>
-                      <p className="text-gray-900">{selectedTemplate.product_title}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Template ID:</span>
-                      <p className="text-gray-900 font-mono text-xs">{selectedTemplate.template_id}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Created:</span>
-                      <p className="text-gray-900">{formatDate(selectedTemplate.created_at)}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Updated:</span>
-                      <p className="text-gray-900">{formatDate(selectedTemplate.updated_at)}</p>
-                    </div>
-                    {selectedTemplate.user_id && (
-                      <div>
-                        <span className="font-medium text-gray-600">User:</span>
-                        {modalLoading ? (
-                          <p className="text-gray-500 text-sm">Loading user details...</p>
-                        ) : userDetails ? (
-                          <div className="text-gray-900">
-                            <p className="font-medium">{userDetails.name}</p>
-                            <p className="text-sm text-gray-600">{userDetails.email}</p>
-                            <p className="text-xs text-gray-400 font-mono">ID: {selectedTemplate.user_id}</p>
-                          </div>
-                        ) : (
-                          <p className="text-gray-500 text-sm">User details not available</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Complete Template Data from Printful */}
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Complete Template Data (from Printful API)</h4>
-                {modalLoading ? (
-                  <div className="bg-gray-50 p-4 rounded-lg border flex items-center justify-center">
-                    <p className="text-gray-500 text-sm">Loading complete template data...</p>
-                  </div>
-                ) : completeTemplateData ? (
-                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
-                    {JSON.stringify(completeTemplateData, null, 2)}
-                  </pre>
-                ) : (
-                  <div className="bg-gray-50 p-4 rounded-lg border">
-                    <p className="text-gray-500 text-sm">Complete template data not available</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Local Template Data */}
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Local Template Data</h4>
-                <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
-                  {JSON.stringify(selectedTemplate, null, 2)}
-                </pre>
-              </div>
-
-              {/* Variant Options */}
-              {selectedTemplate.variant_options && Object.keys(selectedTemplate.variant_options).length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Variant Options</h4>
-                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border text-gray-500">
-                    {JSON.stringify(selectedTemplate.variant_options, null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              {/* Mockup Tasks */}
-              {mockupTask?.task_key && (
-                <div className="mt-4">
-                  <button
-                    className={`${
-                      isPolling ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                    } text-white px-4 py-2 rounded-md text-sm font-medium`}
-                    onClick={() => pollMockupTask(mockupTask.task_key)}
-                    disabled={isPolling}
-                  >
-                    {isPolling ? "Polling..." : "Poll Task Status"}
-                  </button>
-                  {pollingStatus && <p className="mt-2 text-sm text-gray-700">{pollingStatus}</p>}
-                  {mockupResult && (
-                    <div className="mt-2">
-                      <h5 className="text-sm font-semibold text-gray-800">Mockup Result:</h5>
-                      <pre className="bg-gray-100 p-2 rounded text-xs text-gray-600 max-h-64 overflow-auto">
-                        {JSON.stringify(mockupResult, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={closeModal}
-                className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Close
-              </button>
-
-              <button
-                className={`${
-                  modalLoading ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
-                } text-white mx-2 px-4 py-2 rounded-md text-sm font-medium`}
-                disabled={modalLoading}
-                onClick={async () => {
-                  if (!selectedTemplate) return;
-
-                  console.log("🧪 selectedTemplate:", selectedTemplate);
-
-                  const res = await fetch(`/api/printful/product-templates/${selectedTemplate.template_id}`);
-                  const templateData = await res.json();
-
-                  console.log("📦 Template Data:", templateData);
-
-                  const catalog_product_id = templateData?.result?.product_id;
-
-                  console.log("🆔 Extracted catalog_product_id:", catalog_product_id);
-
-                  if (!catalog_product_id || isNaN(Number(catalog_product_id))) {
-                    toast.error("Missing or invalid catalog_product_id");
-                    return;
-                  }
-
-                  const variantIds = (selectedTemplate.variant_options || []).filter(
-                    (id: number) => typeof id === "number" && !isNaN(id)
-                  );
-
-                  const validPlacements: string[] =
-                    templateData?.result?.placements?.map((p: any) => p.placement) || "front";
-
-                  const placement = validPlacements[0];
-
-                  const files = [
-                    {
-                      placement,
-                      image_url: selectedTemplate.image_url,
-                      position: {
-                        area_width: 1800,
-                        area_height: 2400,
-                        width: 1800,
-                        height: 2400,
-                        top: 0,
-                        left: 0,
-                      },
-                    },
-                  ];
-
-                  console.log("Selected Variant IDs:", variantIds);
-                  console.log("Product ID:", catalog_product_id);
-
-                  if (!catalog_product_id) {
-                    toast.error("Missing or invalid catalog_product_id");
-                    return;
-                  }
-
-                  if (variantIds.length === 0) {
-                    toast.error("No valid variant IDs found");
-                    return;
-                  }
-
-                  if (!files.length || !files[0].image_url) {
-                    toast.error("Missing design file");
-                    return;
-                  }
-
-                  try {
-                    setModalLoading(true);
-
-                    const res = await fetch("/api/printful/mockup", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        template_id: selectedTemplate.id,
-                        catalog_product_id,
-                        variant_ids: variantIds,
-                        files,
-                      }),
-                    });
-
-                    const data = await res.json();
-
-                    if (res.ok && data.task_key) {
-                      toast.success(`Mockup task created! Task ID: ${data.task_key}`);
-                      // Optional: trigger polling with task_key
-                    } else {
-                      toast.error(`Failed to create mockup: ${data.error || "Unknown error"}`);
-                    }
-                  } catch (err: any) {
-                    toast.error(`Network or server error: ${err.message}`);
-                  } finally {
-                    setModalLoading(false);
-                  }
-                }}
-              >
-                {modalLoading ? "Loading..." : "Create Mockup"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <TemplateModal
+          selectedTemplate={selectedTemplate}
+          userDetails={userDetails}
+          modalLoading={modalLoading}
+          mockupTask={mockupTask}
+          mockupResult={mockupResult}
+          pollingStatus={pollingStatus}
+          isPolling={isPolling}
+          completeTemplateData={completeTemplateData}
+          onClose={closeModal}
+          onPoll={pollMockupTask}
+          onFetchData={handleTemplateClick}
+        />
       )}
     </div>
   );
