@@ -93,7 +93,7 @@ export default function TemplateModal({
         setPendingMockupTask(data.task);
 
         // scroll to mockup result
-        scrollToElement("mockup-task-polling-section");
+        scrollToElement("template-details-header");
       } else {
         toast.error(`Failed to create mockup: ${data.error || "Unknown error"}`);
       }
@@ -187,7 +187,7 @@ export default function TemplateModal({
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-0 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
         {/* Modal Content */}
-        <div className="relative p-5 max-h-[75vh] overflow-y-auto" ref={modalBodyRef}>
+        <div id="template-details-header" className="relative p-5 max-h-[75vh] overflow-y-auto" ref={modalBodyRef}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
             <button onClick={onCloseModal} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
@@ -197,7 +197,7 @@ export default function TemplateModal({
 
           {/* Fixed Polling Banner */}
           {pendingMockupTask?.task_key && (
-            <div id="mockup-task-polling-section" className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <div className="flex items-center space-x-3">
                 {isPolling ? (
                   <>
