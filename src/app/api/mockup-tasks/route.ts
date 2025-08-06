@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const template_id = searchParams.get("template_id");
+  const status = searchParams.get("status");
 
   const query = supabase
     .from("mockup_tasks")
@@ -13,6 +14,10 @@ export async function GET(req: NextRequest) {
 
   if (template_id) {
     query.eq("template_id", template_id);
+  }
+
+  if (status) {
+    query.eq("status", status);
   }
 
   const { data, error } = await query;

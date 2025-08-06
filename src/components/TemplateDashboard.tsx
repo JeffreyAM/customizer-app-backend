@@ -19,7 +19,7 @@ export default function TemplateDashboard() {
   const [showModal, setShowModal] = useState(false);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [completeTemplateData, setCompleteTemplateData] = useState<any>(null);
-  const [mockupTask, setMockupTask] = useState<any>(null);
+  const [pendingMockupTask, setPendingMockupTask] = useState<any>(null);
   const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
@@ -64,14 +64,15 @@ export default function TemplateDashboard() {
     }
   };
 
-  const fetchMockupTasks = async (templateId?: string) => {
+  const fetchPendingMockupTask = async (templateId?: string) => {
     try {
-      const response = await fetch(`/api/mockup-tasks?template_id=${templateId}`);
+      const response = await fetch(`/api/mockup-tasks?template_id=${templateId}&status=pending`);
       const data = await response.json();
-      return data.tasks || [];
+      const task = data.tasks?.[0] || null;
+      return task;
     } catch (error) {
       toast.error("Error fetching mockup tasks.");
-      return [];
+      return null;
     }
   };
 
@@ -81,7 +82,7 @@ export default function TemplateDashboard() {
     setModalLoading(true);
     setUserDetails(null);
     setCompleteTemplateData(null);
-    setMockupTask(null);
+    setPendingMockupTask(null);
 
     if (template.user_id) {
       await fetchUserDetails(template.user_id, setUserDetails);
@@ -89,9 +90,8 @@ export default function TemplateDashboard() {
 
     await fetchCompleteTemplateData(template.template_id);
 
-    const tasks = await fetchMockupTasks(template.id);
-    const matchingTask = tasks?.[0] || null;
-    setMockupTask(matchingTask);
+    const pendingTask = await fetchPendingMockupTask(template.id);
+    setPendingMockupTask(pendingTask);
 
     setModalLoading(false);
   };
@@ -101,7 +101,7 @@ export default function TemplateDashboard() {
     setSelectedTemplate(null);
     setUserDetails(null);
     setCompleteTemplateData(null);
-    setMockupTask(null);
+    setPendingMockupTask(null);
   };
 
   return (
@@ -147,8 +147,8 @@ export default function TemplateDashboard() {
           selectedTemplate={selectedTemplate}
           userDetails={userDetails}
           modalLoading={modalLoading}
-          mockupTask={mockupTask}
-          setMockupTask={setMockupTask}
+          pendingMockupTask={pendingMockupTask}
+          setPendingMockupTask={setPendingMockupTask}
           completeTemplateData={completeTemplateData}
           onClose={closeModal}
           onFetchData={handleTemplateClick}

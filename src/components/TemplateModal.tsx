@@ -7,8 +7,8 @@ interface TemplateModalProps {
   selectedTemplate: Template;
   userDetails: UserDetails | null;
   modalLoading: boolean;
-  mockupTask: any;
-  setMockupTask: (task: any) => void;
+  pendingMockupTask: any;
+  setPendingMockupTask: (task: any) => void;
   completeTemplateData: any;
   onClose: () => void;
   onFetchData: (template: Template) => Promise<void>;
@@ -18,8 +18,8 @@ export default function TemplateModal({
   selectedTemplate,
   userDetails,
   modalLoading,
-  mockupTask,
-  setMockupTask,
+  pendingMockupTask,
+  setPendingMockupTask,
   completeTemplateData,
   onClose,
   onFetchData,
@@ -90,7 +90,7 @@ export default function TemplateModal({
 
       if (response.ok && data.task) {
         toast.success(`Mockup task created! Task ID: ${data.task.task_key}`);
-        setMockupTask(data.task);
+        setPendingMockupTask(data.task);
 
         // scroll to mockup result
         scrollToElement("mockup-task-polling-section");
@@ -167,13 +167,13 @@ export default function TemplateModal({
 
   useEffect(() => {
     isMounted.current = true;
-    if (mockupTask?.task_key) {
-      pollMockupTask(mockupTask.task_key);
+    if (pendingMockupTask?.task_key) {
+      pollMockupTask(pendingMockupTask.task_key);
     }
     return () => {
       isMounted.current = false;
     };
-  }, [mockupTask]);
+  }, [pendingMockupTask]);
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -188,7 +188,7 @@ export default function TemplateModal({
           </div>
 
           {/* Fixed Polling Banner */}
-          {mockupTask?.task_key && (
+          {pendingMockupTask?.task_key && (
             <div id="mockup-task-polling-section" className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <div className="flex items-center space-x-3">
                 {isPolling ? (
