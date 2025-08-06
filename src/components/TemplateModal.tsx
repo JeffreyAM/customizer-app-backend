@@ -1,6 +1,4 @@
-// components/TemplateModal.tsx
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Template, UserDetails } from "../types";
 import { formatDate } from "../utils/common";
@@ -24,6 +22,7 @@ export default function TemplateModal({
   onClose,
   onFetchData,
 }: TemplateModalProps) {
+  const isMounted = useRef(true);
   const [creatingMockup, setCreatingMockup] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [mockupResult, setMockupResult] = useState<any>(null);
@@ -97,46 +96,50 @@ export default function TemplateModal({
   };
 
   const pollMockupTask = async (taskKey: string) => {
-    setIsPolling(true);
-    toast.loading("Polling started...");
-    let attempts = 0;
-    const maxAttempts = 20;
-    const interval = 5000;
+  setIsPolling(true);
+  const interval = 5000;
 
-    const checkStatus = async () => {
-      try {
-        const res = await fetch(`/api/printful/task-status/${taskKey}`);
-        const data = await res.json();
+  const checkStatus = async () => {
+    if (!isMounted.current) return; // Stop if unmounted or modal closed
+    try {
+      const status = await fetchCheckMockupTasksStatus(taskKey);
+      if (!isMounted.current) return;
 
-        setPollingStatus(`Status: ${data.status}`);
-        toast.success(`Task status: ${data.status}`, { id: "polling-toast" });
+      setPollingStatus(`Status: ${status}`);
 
-        if (data.status === "completed") {
-          const resultRes = await fetch(`/api/printful/task-result/${taskKey}`);
-          const resultData = await resultRes.json();
-          setMockupResult(resultData);
-          setPollingStatus("✅ Task completed");
-          setIsPolling(false);
-        } else if (data.status === "failed") {
-          setPollingStatus("❌ Task failed");
-          setIsPolling(false);
-          toast.error("Task failed.");
-        } else if (attempts < maxAttempts) {
-          attempts++;
-          setTimeout(checkStatus, interval);
-        } else {
-          setPollingStatus("⏰ Timeout");
-          setIsPolling(false);
-          toast.error("Polling timeout.");
-        }
-      } catch (error) {
+      if (status === "completed") {
+        setPollingStatus("✅ Task completed");
+        setIsPolling(false);
+      } else if (status === "failed") {
+        setPollingStatus("❌ Task failed");
+        setIsPolling(false);
+      } else if (status === "pending") {
+        setPollingStatus("⏳ Task in progress...");
+        setTimeout(checkStatus, interval);
+      } else {
+        setPollingStatus("⏰ Timeout");
+        setIsPolling(false);
+      }
+    } catch (error) {
+      if (isMounted.current) {
         setPollingStatus("⚠️ Polling failed");
         setIsPolling(false);
-        toast.error("Polling failed.");
       }
-    };
+    }
+  };
 
-    checkStatus();
+  checkStatus();
+};
+
+
+  const fetchCheckMockupTasksStatus = async (taskKey: string) => {
+    try {
+      const response = await fetch(`/api/mockup-tasks/${taskKey}`);
+      const data = await response.json();
+      return data?.task?.status || "unknown";
+    } catch (error) {
+      return "unknown";
+    }
   };
 
   const onCloseModal = () => {
@@ -147,17 +150,66 @@ export default function TemplateModal({
     onClose();
   };
 
+  useEffect(() => {
+    isMounted.current = true;
+    if (mockupTask?.task_key) {
+      pollMockupTask(mockupTask.task_key);
+    }
+    return () => {
+      isMounted.current = false;
+    };
+  }, [mockupTask]);
+
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
-          <button onClick={onCloseModal} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-            ×
-          </button>
-        </div>
+      <div className="relative top-20 mx-auto p-0 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+        {/* Modal Content */}
+        <div className="relative p-5 max-h-[75vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
+            <button onClick={onCloseModal} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
+              ×
+            </button>
+          </div>
 
-        <div className="max-h-[75vh] overflow-y-auto">
+          {/* Fixed Polling Banner */}
+          {mockupTask?.task_key && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center space-x-3">
+                {isPolling ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span className="text-sm text-blue-800 font-medium">
+                      Polling mockup task... <span className="ml-2">{pollingStatus}</span>
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm text-green-700 font-medium">{pollingStatus || "✅ Polling complete."}</span>
+                )}
+              </div>
+
+              {isPolling && (
+                <div className="w-full bg-blue-100 rounded-full h-2 mt-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${mockupResult ? 100 : 0}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {selectedTemplate.image_url && (
               <div>
@@ -243,48 +295,33 @@ export default function TemplateModal({
             </div>
           )}
 
-          {mockupTask?.task_key && (
-            <div className="mt-4">
-              <button
-                className={`${
-                  isPolling ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                } text-white px-4 py-2 rounded-md text-sm font-medium`}
-                // onClick={() => onPoll(mockupTask.task_key)}
-                disabled={isPolling}
-              >
-                {isPolling ? "Polling..." : "Poll Task Status"}
-              </button>
-              {pollingStatus && <p className="mt-2 text-sm text-gray-700">{pollingStatus}</p>}
-
-              {mockupResult && (
-                <div className="mt-2">
-                  <h5 className="text-sm font-semibold text-gray-800">Mockup Result:</h5>
-                  <pre className="bg-gray-100 p-2 rounded text-xs text-gray-600 max-h-64 overflow-auto">
-                    {JSON.stringify(mockupResult, null, 2)}
-                  </pre>
-                </div>
-              )}
+          {mockupResult && (
+            <div className="mt-6" id="mockup-result">
+              <h5 className="text-sm font-semibold text-gray-800">Mockup Result</h5>
+              <pre className="bg-white border rounded-md p-3 mt-2 text-xs text-gray-700 max-h-64 overflow-auto">
+                {JSON.stringify(mockupResult, null, 2)}
+              </pre>
             </div>
           )}
-        </div>
 
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Close
-          </button>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={onClose}
+              className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            >
+              Close
+            </button>
 
-          <button
-            className={`${
-              creatingMockup ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
-            } text-white mx-2 px-4 py-2 rounded-md text-sm font-medium`}
-            onClick={handleCreateMockup}
-            disabled={creatingMockup}
-          >
-            {creatingMockup ? "Loading..." : "Create Mockup"}
-          </button>
+            <button
+              className={`${
+                creatingMockup || isPolling ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              } text-white mx-2 px-4 py-2 rounded-md text-sm font-medium cursor-pointer`}
+              onClick={handleCreateMockup}
+              disabled={creatingMockup || isPolling}
+            >
+              {creatingMockup ? "Loading..." : "Create Mockup"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

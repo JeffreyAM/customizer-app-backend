@@ -64,9 +64,9 @@ export default function TemplateDashboard() {
     }
   };
 
-  const fetchMockupTasks = async () => {
+  const fetchMockupTasks = async (templateId?: string) => {
     try {
-      const response = await fetch("/api/mockup-tasks");
+      const response = await fetch(`/api/mockup-tasks?template_id=${templateId}`);
       const data = await response.json();
       return data.tasks || [];
     } catch (error) {
@@ -89,7 +89,7 @@ export default function TemplateDashboard() {
 
     await fetchCompleteTemplateData(template.template_id);
 
-    const tasks = await fetchMockupTasks();
+    const tasks = await fetchMockupTasks(template.id);
     const matchingTask = tasks?.[0] || null;
     setMockupTask(matchingTask);
 
