@@ -124,7 +124,15 @@ export default function TemplateModal({
         setPollingStatus(`Status: ${status}`);
 
         if (status === "completed") {
-          setPollingStatus("✅ Task completed");
+          const response = await fetch(`/api/mockup-results/${taskKey}`);
+          const data = await response.json();
+          if (response.ok && data.mockup_result) {
+            setMockupResult(data.mockup_result);
+          }
+
+          setPollingStatus(
+            `✅ Task completed <a href='#mockup-result' class='text-blue-600 underline'>View Result</a>`
+          );
           setIsPolling(false);
         } else if (status === "failed") {
           setPollingStatus("❌ Task failed");
@@ -210,7 +218,10 @@ export default function TemplateModal({
                     </span>
                   </>
                 ) : (
-                  <span className="text-sm text-green-700 font-medium">{pollingStatus || "✅ Polling complete."}</span>
+                  <span
+                    className="text-sm text-green-700 font-medium"
+                    dangerouslySetInnerHTML={{ __html: pollingStatus || "✅ Polling complete." }}
+                  />
                 )}
               </div>
 
@@ -334,7 +345,7 @@ export default function TemplateModal({
               onClick={handleCreateMockup}
               disabled={creatingMockup || isPolling}
             >
-              {creatingMockup ? "Loading..." : "Create Mockup"}
+              {creatingMockup ? "Loading..." : mockupResult ? "Create Another Mockup" : "Create Mockup"}
             </button>
           </div>
         </div>
