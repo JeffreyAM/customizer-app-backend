@@ -148,6 +148,7 @@ export default function TemplateDashboard() {
           userDetails={userDetails}
           modalLoading={modalLoading}
           mockupTask={mockupTask}
+          setMockupTask={setMockupTask}
           completeTemplateData={completeTemplateData}
           onClose={closeModal}
           onFetchData={handleTemplateClick}

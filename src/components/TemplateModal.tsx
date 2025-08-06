@@ -8,6 +8,7 @@ interface TemplateModalProps {
   userDetails: UserDetails | null;
   modalLoading: boolean;
   mockupTask: any;
+  setMockupTask: (task: any) => void;
   completeTemplateData: any;
   onClose: () => void;
   onFetchData: (template: Template) => Promise<void>;
@@ -18,11 +19,14 @@ export default function TemplateModal({
   userDetails,
   modalLoading,
   mockupTask,
+  setMockupTask,
   completeTemplateData,
   onClose,
   onFetchData,
 }: TemplateModalProps) {
   const isMounted = useRef(true);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
+
   const [creatingMockup, setCreatingMockup] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [mockupResult, setMockupResult] = useState<any>(null);
@@ -75,6 +79,7 @@ export default function TemplateModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           template_id: selectedTemplate.id,
+          product_template_id: selectedTemplate.template_id,
           catalog_product_id,
           variant_ids: variantIds,
           files,
@@ -83,8 +88,12 @@ export default function TemplateModal({
 
       const data = await response.json();
 
-      if (response.ok && data.task_key) {
-        toast.success(`Mockup task created! Task ID: ${data.task_key}`);
+      if (response.ok && data.task) {
+        toast.success(`Mockup task created! Task ID: ${data.task.task_key}`);
+        setMockupTask(data.task);
+
+        // scroll to mockup result
+        scrollToElement("mockup-task-polling-section");
       } else {
         toast.error(`Failed to create mockup: ${data.error || "Unknown error"}`);
       }
@@ -95,42 +104,48 @@ export default function TemplateModal({
     }
   };
 
-  const pollMockupTask = async (taskKey: string) => {
-  setIsPolling(true);
-  const interval = 5000;
-
-  const checkStatus = async () => {
-    if (!isMounted.current) return; // Stop if unmounted or modal closed
-    try {
-      const status = await fetchCheckMockupTasksStatus(taskKey);
-      if (!isMounted.current) return;
-
-      setPollingStatus(`Status: ${status}`);
-
-      if (status === "completed") {
-        setPollingStatus("✅ Task completed");
-        setIsPolling(false);
-      } else if (status === "failed") {
-        setPollingStatus("❌ Task failed");
-        setIsPolling(false);
-      } else if (status === "pending") {
-        setPollingStatus("⏳ Task in progress...");
-        setTimeout(checkStatus, interval);
-      } else {
-        setPollingStatus("⏰ Timeout");
-        setIsPolling(false);
-      }
-    } catch (error) {
-      if (isMounted.current) {
-        setPollingStatus("⚠️ Polling failed");
-        setIsPolling(false);
-      }
+  const scrollToElement = (elementId: string) => {
+    const el = document.getElementById(elementId);
+    if (el && modalBodyRef.current) {
+      modalBodyRef.current.scrollTop = el.offsetTop;
     }
   };
 
-  checkStatus();
-};
+  const pollMockupTask = async (taskKey: string) => {
+    setIsPolling(true);
+    const interval = 5000;
 
+    const checkStatus = async () => {
+      if (!isMounted.current) return; // Stop if unmounted or modal closed
+      try {
+        const status = await fetchCheckMockupTasksStatus(taskKey);
+        if (!isMounted.current) return;
+
+        setPollingStatus(`Status: ${status}`);
+
+        if (status === "completed") {
+          setPollingStatus("✅ Task completed");
+          setIsPolling(false);
+        } else if (status === "failed") {
+          setPollingStatus("❌ Task failed");
+          setIsPolling(false);
+        } else if (status === "pending") {
+          setPollingStatus("⏳ Task in progress...");
+          setTimeout(checkStatus, interval);
+        } else {
+          setPollingStatus("⏰ Timeout");
+          setIsPolling(false);
+        }
+      } catch (error) {
+        if (isMounted.current) {
+          setPollingStatus("⚠️ Polling failed");
+          setIsPolling(false);
+        }
+      }
+    };
+
+    checkStatus();
+  };
 
   const fetchCheckMockupTasksStatus = async (taskKey: string) => {
     try {
@@ -164,7 +179,7 @@ export default function TemplateModal({
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-0 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
         {/* Modal Content */}
-        <div className="relative p-5 max-h-[75vh] overflow-y-auto">
+        <div className="relative p-5 max-h-[75vh] overflow-y-auto" ref={modalBodyRef}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">Template Details</h3>
             <button onClick={onCloseModal} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
@@ -174,7 +189,7 @@ export default function TemplateModal({
 
           {/* Fixed Polling Banner */}
           {mockupTask?.task_key && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div id="mockup-task-polling-section" className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <div className="flex items-center space-x-3">
                 {isPolling ? (
                   <>
