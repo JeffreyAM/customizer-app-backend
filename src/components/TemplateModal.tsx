@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { Template, UserDetails } from "../types";
+import { ShopifyProductCreateResponse, Template, UserDetails } from "../types";
 import { formatDate } from "../utils/common";
 
 interface TemplateModalProps {
@@ -30,6 +30,7 @@ export default function TemplateModal({
   const [isPolling, setIsPolling] = useState(false);
   const [mockupResult, setMockupResult] = useState<any>(null);
   const [pollingStatus, setPollingStatus] = useState("");
+  const [createShopifyProductLoading, setCreateShopifyProductLoading] = useState(false);
 
   const [openSections, setOpenSections] = useState({
     complete: false,
@@ -190,6 +191,7 @@ export default function TemplateModal({
       return;
     }
 
+    setCreateShopifyProductLoading(true);
     try {
       const variants = mockupResult.mockups.map((mockup: any) =>
         mockup.extra.map((extra: any) => ({
@@ -220,19 +222,20 @@ export default function TemplateModal({
       });
       const data: ShopifyProductCreateResponse = await response.json();
 
-      if (!response.ok || !data.body || !data.body.data) {
-        throw new Error(data?.error || "Failed to create Shopify product");
+      if (!response.ok || data.productCreate.userErrors.length > 0) {
+        throw new Error(data.productCreate.userErrors.map((err: any) => err.message).join(", ") || "Unknown error");
       }
 
-      const product = data.body?.data?.productCreate?.product;
+      const product = data.productCreate.product;
       if (product) {
-        toast.success(`Product created successfully: ${product.title} (ID: ${product.id})`);
-        onClose();
+        toast.success(`Shopify Product created successfully!`);
       } else {
-        toast.error("Product creation response is missing product data.");
+        toast.error("Shopify Product creation response is missing product data.");
       }
+      setCreateShopifyProductLoading(false);
     } catch (error: any) {
       toast.error(`Error creating Shopify product: ${error.message}`);
+      setCreateShopifyProductLoading(false);
     }
   };
 
@@ -455,10 +458,16 @@ export default function TemplateModal({
 
                 {mockupResult && (
                   <button
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    className={`${
+                      createShopifyProductLoading || isPolling
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-green-600 hover:bg-green-700"
+                    }
+                      text-white px-4 py-2 rounded-md text-sm font-medium`}
                     onClick={handleCreateShopifyProduct}
+                    disabled={createShopifyProductLoading || isPolling}
                   >
-                    Create Shopify Product
+                    {createShopifyProductLoading ? "Loading..." : "Create Shopify Product"}
                   </button>
                 )}
               </div>

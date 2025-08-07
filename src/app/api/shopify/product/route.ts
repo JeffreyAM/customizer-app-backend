@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
+import { ShopifyProductCreateResponse } from "@/types";
+
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -19,6 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     const shopify = getShopify();
     const session = await getSession();
+
     const client = new shopify.clients.Graphql({ session });
 
     const mutation = `
@@ -59,20 +65,41 @@ export async function POST(req: NextRequest) {
       }
     `;
 
-    // Construct product options if variants exist
-    const optionNames = ["Size", "Color"];
-    const productOptions = optionNames.map((name, index) => ({
-      name,
-      values: [...new Set(variants.map((v: any) => v[name.toLowerCase()] || v[`option${index + 1}`]))],
-    }));
+    // Flatten the variants
+    const flatVariants = variants.flat();
 
-    // Shopify expects options: option1, option2 etc.
-    const shopifyVariants = variants.map((v: any) => ({
-      option1: v.size || v.option1 || null,
-      option2: v.color || v.option2 || null,
-      price: v.price || "9.99",
-      sku: v.sku || null,
-    }));
+    // List of keys to ignore (e.g., non-option fields)
+    const ignoredKeys = ["price", "sku", "id"];
+
+    const productOptions = flatVariants.reduce((acc: any[], variant: any) => {
+      Object.entries(variant).forEach(([key, value]) => {
+        if (ignoredKeys.includes(key)) return;
+
+        const optionName = capitalize(key);
+        let option = acc.find((opt) => opt.name === optionName);
+        if (!option) {
+          option = {
+            name: optionName,
+            position: acc.length + 1,
+            values: [],
+          };
+          acc.push(option);
+        }
+
+        // Convert to { name: value } and check for duplicates
+        const valueObj = { name: value };
+        const exists = option.values.some((v: any) => v.name === value);
+        if (!exists) {
+          option.values.push(valueObj);
+        }
+      });
+
+      return acc;
+    }, []);
+
+    console.log(variants);
+
+    console.log(productOptions);
 
     // Construct media inputs for image URLs
     const media = images.map((url: string, idx: number) => ({
@@ -90,29 +117,26 @@ export async function POST(req: NextRequest) {
         status: status || "DRAFT",
         tags: [`edm_template_id_${edmTemplateId}`],
         productOptions,
-        variants: shopifyVariants,
       },
       media,
     };
 
-    const response: ShopifyProductCreateResponse = await client.query({
-      data: {
-        query: mutation,
-        variables,
-      },
+    const response = await client.request(mutation, {
+      variables,
     });
 
-    if (!response.body || !response.body.data) {
+    const data = response.data as ShopifyProductCreateResponse;
+    if (!data || !data.productCreate) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });
     }
 
-    const { productCreate } = response.body.data;
+    const { productCreate } = data;
 
     if (productCreate.userErrors.length > 0) {
       return NextResponse.json({ error: "Shopify error", details: productCreate.userErrors }, { status: 400 });
     }
 
-    return NextResponse.json({ product: productCreate.product }, { status: 201 });
+    return NextResponse.json({ productCreate }, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
     return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
