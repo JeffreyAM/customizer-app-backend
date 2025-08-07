@@ -1,4 +1,4 @@
-// /api/printful/mockup-tasks.ts
+// /api/mockup-task.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
@@ -24,10 +24,7 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     console.error("Supabase fetch error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch tasks" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 });
   }
 
   return NextResponse.json({ tasks: data });

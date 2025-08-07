@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// /api/mockup-tasks/[id]/route.ts
+// /api/mockup-task/[id]/route.ts
 type RouteContext = { params: Promise<{ key: string }> };
 
 export async function GET(req: NextRequest, context: RouteContext) {

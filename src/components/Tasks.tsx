@@ -12,7 +12,7 @@ const TasksPage = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch("/api/mockup-tasks");
+      const response = await fetch("/api/mockup-task");
       const data = await response.json();
       setTasks(data.tasks || []);
     } catch (error) {

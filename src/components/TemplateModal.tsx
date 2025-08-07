@@ -153,7 +153,7 @@ export default function TemplateModal({
 
   const fetchCheckMockupTasksStatus = async (taskKey: string) => {
     try {
-      const response = await fetch(`/api/mockup-tasks/${taskKey}`);
+      const response = await fetch(`/api/mockup-task/${taskKey}`);
       const data = await response.json();
       return data?.task?.status || "unknown";
     } catch (error) {
@@ -164,7 +164,7 @@ export default function TemplateModal({
   const fetchMockupResult = async (taskKey?: string) => {
     try {
       if (!taskKey) {
-        const mockupTaskResponse = await fetch(`/api/mockup-tasks?template_id=${selectedTemplate.id}&status=completed`);
+        const mockupTaskResponse = await fetch(`/api/mockup-task?template_id=${selectedTemplate.id}&status=completed`);
         const mockupTaskData = await mockupTaskResponse.json();
         taskKey = mockupTaskData.tasks?.[0]?.task_key;
       }

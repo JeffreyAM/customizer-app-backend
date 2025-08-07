@@ -66,7 +66,7 @@ export default function TemplateDashboard() {
 
   const fetchPendingMockupTask = async (templateId?: string) => {
     try {
-      const response = await fetch(`/api/mockup-tasks?template_id=${templateId}&status=pending`);
+      const response = await fetch(`/api/mockup-task?template_id=${templateId}&status=pending`);
       const data = await response.json();
       const task = data.tasks?.[0] || null;
       return task;
