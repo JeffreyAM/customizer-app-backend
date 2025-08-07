@@ -1,4 +1,4 @@
-// /api/printful/mockup-results.ts
+// /api/mockup-result.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 

@@ -169,7 +169,7 @@ export default function TemplateModal({
         taskKey = mockupTaskData.tasks?.[0]?.task_key;
       }
 
-      const response = await fetch(`/api/mockup-results/${taskKey}`);
+      const response = await fetch(`/api/mockup-result/${taskKey}`);
       const data = await response.json();
       setMockupResult(data?.mockup_result || null);
     } catch (error) {
