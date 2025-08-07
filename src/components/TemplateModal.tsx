@@ -32,6 +32,19 @@ export default function TemplateModal({
   const [mockupResult, setMockupResult] = useState<any>(null);
   const [pollingStatus, setPollingStatus] = useState("");
 
+  const [openSections, setOpenSections] = useState({
+    complete: false,
+    local: false,
+    mockup: false,
+  });
+
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   const handleCreateMockup = async () => {
     if (!selectedTemplate) return;
 
@@ -359,38 +372,73 @@ export default function TemplateModal({
             </div>
           </div>
 
-          <div className="mt-6">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Complete Template Data (from Printful API)</h4>
-            {modalLoading ? (
-              <div className="bg-gray-50 p-4 rounded-lg border text-sm text-gray-500">
-                Loading complete template data...
-              </div>
-            ) : completeTemplateData ? (
-              <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
-                {JSON.stringify(completeTemplateData, null, 2)}
-              </pre>
-            ) : (
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <p className="text-gray-500 text-sm">Complete template data not available</p>
+          <div className="space-y-4 mt-6">
+            {/* Complete Template Data Accordion */}
+            <div>
+              <button
+                onClick={() => toggleSection("complete")}
+                className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+              >
+                <h4 className="text-sm font-medium text-gray-900">Complete Template Data (from Printful API)</h4>
+                <span className="text-gray-500">{openSections.complete ? "−" : "+"}</span>
+              </button>
+              {openSections.complete && (
+                <div className="mt-2">
+                  {modalLoading ? (
+                    <div className="bg-gray-50 p-4 rounded-lg border text-sm text-gray-500">
+                      Loading complete template data...
+                    </div>
+                  ) : completeTemplateData ? (
+                    <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
+                      {JSON.stringify(completeTemplateData, null, 2)}
+                    </pre>
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <p className="text-gray-500 text-sm">Complete template data not available</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Local Template Data Accordion */}
+            <div>
+              <button
+                onClick={() => toggleSection("local")}
+                className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+              >
+                <h4 className="text-sm font-medium text-gray-900">Local Template Data</h4>
+                <span className="text-gray-500">{openSections.local ? "−" : "+"}</span>
+              </button>
+              {openSections.local && (
+                <div className="mt-2">
+                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
+                    {JSON.stringify(selectedTemplate, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* Mockup Result Accordion */}
+            {mockupResult && (
+              <div>
+                <button
+                  onClick={() => toggleSection("mockup")}
+                  className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                >
+                  <h5 className="text-sm font-medium text-gray-900">Mockup Result</h5>
+                  <span className="text-gray-500">{openSections.mockup ? "−" : "+"}</span>
+                </button>
+                {openSections.mockup && (
+                  <div className="mt-2">
+                    <pre className="bg-white border rounded-md p-3 text-xs text-gray-700 max-h-64 overflow-auto">
+                      {JSON.stringify(mockupResult, null, 2)}
+                    </pre>
+                  </div>
+                )}
               </div>
             )}
           </div>
-
-          <div className="mt-6">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Local Template Data</h4>
-            <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
-              {JSON.stringify(selectedTemplate, null, 2)}
-            </pre>
-          </div>
-
-          {mockupResult && (
-            <div className="mt-6" id="mockup-result">
-              <h5 className="text-sm font-semibold text-gray-800">Mockup Result</h5>
-              <pre className="bg-white border rounded-md p-3 mt-2 text-xs text-gray-700 max-h-64 overflow-auto">
-                {JSON.stringify(mockupResult, null, 2)}
-              </pre>
-            </div>
-          )}
 
           <div className="mt-6 flex justify-end">
             <button
