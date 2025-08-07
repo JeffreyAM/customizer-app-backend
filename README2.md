@@ -98,7 +98,7 @@ The API will be available at `http://localhost:3000/api/`
 
 ### Template Management
 
-#### `POST /api/shopify/template`
+#### `POST /api/printful/template`
 Creates/updates Printful templates with background mockup generation.
 
 **Request:**

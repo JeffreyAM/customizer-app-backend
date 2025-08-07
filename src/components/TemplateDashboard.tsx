@@ -144,7 +144,7 @@ export default function TemplateDashboard() {
               <h3 className="text-lg leading-6 font-medium text-gray-900">API Integration</h3>
               <div className="mt-2 max-w-xl text-sm text-gray-500">
                 <p>
-                  Send POST requests to <code className="bg-gray-100 px-1 rounded">/api/shopify/template</code> from
+                  Send POST requests to <code className="bg-gray-100 px-1 rounded">/api/printful/template</code> from
                   Shopify with:
                 </p>
                 <pre className="mt-2 p-3 bg-gray-50 rounded text-xs">
