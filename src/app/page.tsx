@@ -30,7 +30,7 @@ export default function Home() {
                   <span className="text-xs">Fetch saved design templates</span>
                 </li>
                 <li>
-                  <code className="bg-gray-100 px-2 py-1 rounded text-xs">POST /api/save-customization</code>
+                  <code className="bg-gray-100 px-2 py-1 rounded text-xs">POST /api/customization</code>
                   <br />
                   <span className="text-xs">Save product customizations</span>
                 </li>

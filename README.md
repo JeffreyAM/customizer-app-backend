@@ -22,7 +22,7 @@ Built using **Next.js (App Router)** and hosted locally or via your preferred pl
 
 ## 📦 API Endpoints
 
-### `POST /api/save-customization`
+### `POST /api/customization`
 
 Saves or updates a product customization.
 

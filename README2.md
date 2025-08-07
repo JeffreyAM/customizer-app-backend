@@ -162,7 +162,7 @@ const sessionKey = `customizationToken-${shopifyProductId}`;
 const existingToken = localStorage.getItem(sessionKey);
 
 // Save with existing token (update) or create new
-const response = await fetch('/api/save-customization', {
+const response = await fetch('/api/customization', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

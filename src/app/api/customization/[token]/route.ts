@@ -35,11 +35,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const { data, error } = await supabase
-    .from("customizations")
-    .select("*")
-    .eq("id", token)
-    .single();
+  const { data, error } = await supabase.from("customizations").select("*").eq("id", token).single();
 
   if (error || !data) {
     return new NextResponse(JSON.stringify({ error: "Not found" }), {
@@ -58,7 +54,7 @@ export async function GET(req: NextRequest) {
       "Content-Type": "application/json",
     },
   });
-}
+} 
 
 // CORS preflight
 export async function OPTIONS(req: NextRequest) {
@@ -66,8 +62,71 @@ export async function OPTIONS(req: NextRequest) {
     status: 204,
     headers: {
       "Access-Control-Allow-Origin": getAllowedOrigin(req),
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
     },
   });
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { color, message, font, shopify_product_id, token } = body;
+
+    if (!color || !message || !font || !shopify_product_id) {
+      return new NextResponse(JSON.stringify({ error: "Missing fields" }), {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": getAllowedOrigin(req),
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    let result;
+    if (token) {
+      // Update existing customization
+      result = await supabase
+        .from("customizations")
+        .update({ color, message, font, shopify_product_id })
+        .eq("id", token)
+        .select()
+        .single();
+    } else {
+      // Insert new customization if no token is provided
+      result = await supabase
+        .from("customizations")
+        .insert([{ color, message, font, shopify_product_id }])
+        .select()
+        .single();
+    }
+
+    if (result.error) {
+      return new NextResponse(JSON.stringify({ error: result.error.message }), {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": getAllowedOrigin(req),
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    return new NextResponse(JSON.stringify({ token: result.data.id }), {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": getAllowedOrigin(req),
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    return new NextResponse(JSON.stringify({ error: "Server error" }), {
+      status: 500,
+      headers: {
+        "Access-Control-Allow-Origin": getAllowedOrigin(req),
+        "Content-Type": "application/json",
+      },
+    });
+  }
+}
+
