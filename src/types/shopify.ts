@@ -14,4 +14,6 @@ type ShopifyProductCreateResponse = {
       };
     };
   };
+  error?: string | null;
+  details?: string | null;
 };
