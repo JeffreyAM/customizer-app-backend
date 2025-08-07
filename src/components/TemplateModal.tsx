@@ -167,6 +167,10 @@ export default function TemplateModal({
         const mockupTaskResponse = await fetch(`/api/mockup-task?template_id=${selectedTemplate.id}&status=completed`);
         const mockupTaskData = await mockupTaskResponse.json();
         taskKey = mockupTaskData.tasks?.[0]?.task_key;
+
+        if (!taskKey) {
+          return;
+        }
       }
 
       const response = await fetch(`/api/mockup-result/${taskKey}`);
@@ -175,6 +179,56 @@ export default function TemplateModal({
     } catch (error) {
       console.error("Error fetching mockup result:", error);
       setMockupResult(null);
+    }
+  };
+
+  const handleCreateShopifyProduct = async () => {
+    if (!mockupResult) {
+      toast.error("No mockup result available to create Shopify product");
+      return;
+    }
+
+    try {
+      const variants = mockupResult.mockups.flatMap((mockup: any) =>
+        mockup.extras.map((extra: any) => ({
+          size: extra.title,
+          color: extra.option,
+          price: "24.99", // Default price, can be customized
+        }))
+      );
+      const images = mockupResult.mockups.map((mockup: any) => mockup.mockup_url);
+
+      const payload = {
+        product: {
+          title: completeTemplateData?.result?.title || selectedTemplate.product_title,
+          body_html: `<p>Product created from template: ${selectedTemplate.template_id}</p>`,
+          vendor: "EDMBrand",
+          product_type: "Shirt",
+          status: "ACTIVE",
+        },
+        variants,
+        images: images,
+        edmTemplateId: selectedTemplate.template_id,
+      };
+
+      const response = await fetch("/api/shopify/product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data: ShopifyProductCreateResponse = await response.json();
+      if (response.ok && data.body.data?.productCreate) {
+        const product = data.body.data.productCreate.product;
+        toast.success(`Product created successfully: ${product.title} (ID: ${product.id})`);
+        onClose();
+      } else {
+        const errorMessage = data.body.data?.productCreate.userErrors
+          ? data.body.data.productCreate.userErrors.map((err: any) => err.message).join(", ")
+          : "Unknown error";
+        toast.error(`Failed to create product: ${errorMessage}`);
+      }
+    } catch (error: any) {
+      toast.error(`Error creating Shopify product: ${error.message}`);
     }
   };
 
@@ -327,15 +381,6 @@ export default function TemplateModal({
             </pre>
           </div>
 
-          {selectedTemplate.variant_options && Object.keys(selectedTemplate.variant_options).length > 0 && (
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Variant Options</h4>
-              <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border text-gray-500">
-                {JSON.stringify(selectedTemplate.variant_options, null, 2)}
-              </pre>
-            </div>
-          )}
-
           {mockupResult && (
             <div className="mt-6" id="mockup-result">
               <h5 className="text-sm font-semibold text-gray-800">Mockup Result</h5>
@@ -362,6 +407,15 @@ export default function TemplateModal({
             >
               {creatingMockup ? "Loading..." : mockupResult ? "Create Another Mockup" : "Create Mockup"}
             </button>
+
+            {mockupResult && (
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                onClick={handleCreateShopifyProduct}
+              >
+                Create Shopify Product
+              </button>
+            )}
           </div>
         </div>
       </div>
