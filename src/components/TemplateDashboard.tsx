@@ -20,7 +20,6 @@ export default function TemplateDashboard() {
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [completeTemplateData, setCompleteTemplateData] = useState<any>(null);
   const [pendingMockupTask, setPendingMockupTask] = useState<any>(null);
-  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
@@ -79,7 +78,6 @@ export default function TemplateDashboard() {
   const handleTemplateClick = async (template: Template) => {
     setSelectedTemplate(template);
     setShowModal(true);
-    setModalLoading(true);
     setUserDetails(null);
     setCompleteTemplateData(null);
     setPendingMockupTask(null);
@@ -92,8 +90,6 @@ export default function TemplateDashboard() {
 
     const pendingTask = await fetchPendingMockupTask(template.id);
     setPendingMockupTask(pendingTask);
-
-    setModalLoading(false);
   };
 
   const closeModal = () => {
@@ -190,7 +186,6 @@ export default function TemplateDashboard() {
         <TemplateModal
           selectedTemplate={selectedTemplate}
           userDetails={userDetails}
-          modalLoading={modalLoading}
           pendingMockupTask={pendingMockupTask}
           setPendingMockupTask={setPendingMockupTask}
           completeTemplateData={completeTemplateData}

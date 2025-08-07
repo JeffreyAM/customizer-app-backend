@@ -6,7 +6,6 @@ import { formatDate } from "../utils/common";
 interface TemplateModalProps {
   selectedTemplate: Template;
   userDetails: UserDetails | null;
-  modalLoading: boolean;
   pendingMockupTask: any;
   setPendingMockupTask: (task: any) => void;
   completeTemplateData: any;
@@ -17,7 +16,6 @@ interface TemplateModalProps {
 export default function TemplateModal({
   selectedTemplate,
   userDetails,
-  modalLoading,
   pendingMockupTask,
   setPendingMockupTask,
   completeTemplateData,
@@ -27,6 +25,7 @@ export default function TemplateModal({
   const isMounted = useRef(true);
   const modalBodyRef = useRef<HTMLDivElement>(null);
 
+  const [modalLoading, setModalLoading] = useState(true);
   const [creatingMockup, setCreatingMockup] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [mockupResult, setMockupResult] = useState<any>(null);
@@ -252,16 +251,22 @@ export default function TemplateModal({
     setIsPolling(false);
     setMockupResult(null);
     setPollingStatus("");
+    setModalLoading(false);
     onClose();
   };
 
   useEffect(() => {
     isMounted.current = true;
 
-    fetchMockupResult();
-    if (pendingMockupTask?.task_key) {
-      pollMockupTask(pendingMockupTask.task_key);
-    }
+    const fetchData = async () => {
+      await fetchMockupResult();
+      if (pendingMockupTask?.task_key) {
+        pollMockupTask(pendingMockupTask.task_key);
+      }
+      setModalLoading(false);
+    };
+    fetchData();
+
     return () => {
       isMounted.current = false;
     };
@@ -279,194 +284,196 @@ export default function TemplateModal({
             </button>
           </div>
 
-          {/* Fixed Polling Banner */}
-          {pendingMockupTask?.task_key && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <div className="flex items-center space-x-3">
-                {isPolling ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    <span className="text-sm text-blue-800 font-medium">
-                      Polling mockup task... <span className="ml-2">{pollingStatus}</span>
-                    </span>
-                  </>
-                ) : (
-                  <span
-                    className="text-sm text-green-700 font-medium"
-                    dangerouslySetInnerHTML={{ __html: pollingStatus || "✅ Polling complete." }}
-                  />
-                )}
-              </div>
-
-              {isPolling && (
-                <div className="w-full bg-blue-100 rounded-full h-2 mt-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${mockupResult ? 100 : 0}%` }}
-                  />
-                </div>
-              )}
+          {modalLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {selectedTemplate.image_url && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Mockup Image</h4>
-                <img
-                  className="w-full h-78 object-contain rounded-lg border"
-                  src={selectedTemplate.image_url}
-                  alt={selectedTemplate.product_title}
-                />
-              </div>
-            )}
-
+          ) : (
             <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Template Information</h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium text-gray-600">Product Title:</span>
-                  <p className="text-gray-900">{selectedTemplate.product_title}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Template ID:</span>
-                  <p className="text-gray-900 font-mono text-xs">{selectedTemplate.template_id}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Created:</span>
-                  <p className="text-gray-900">{formatDate(selectedTemplate.created_at)}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Updated:</span>
-                  <p className="text-gray-900">{formatDate(selectedTemplate.updated_at)}</p>
-                </div>
-
-                {selectedTemplate.user_id && (
-                  <div>
-                    <span className="font-medium text-gray-600">User:</span>
-                    {modalLoading ? (
-                      <p className="text-gray-500 text-sm">Loading user details...</p>
-                    ) : userDetails ? (
-                      <div className="text-gray-900">
-                        <p className="font-medium">{userDetails.name}</p>
-                        <p className="text-sm text-gray-600">{userDetails.email}</p>
-                        <p className="text-xs text-gray-400 font-mono">ID: {selectedTemplate.user_id}</p>
-                      </div>
+              {/* Fixed Polling Banner */}
+              {pendingMockupTask?.task_key && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="flex items-center space-x-3">
+                    {isPolling ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-blue-600" viewBox="0 0 24 24">
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        <span className="text-sm text-blue-800 font-medium">
+                          Polling mockup task... <span className="ml-2">{pollingStatus}</span>
+                        </span>
+                      </>
                     ) : (
-                      <p className="text-gray-500 text-sm">User details not available</p>
+                      <span
+                        className="text-sm text-green-700 font-medium"
+                        dangerouslySetInnerHTML={{ __html: pollingStatus || "✅ Polling complete." }}
+                      />
                     )}
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
 
-          <div className="space-y-4 mt-6">
-            {/* Complete Template Data Accordion */}
-            <div>
-              <button
-                onClick={() => toggleSection("complete")}
-                className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
-              >
-                <h4 className="text-sm font-medium text-gray-900">Complete Template Data (from Printful API)</h4>
-                <span className="text-gray-500">{openSections.complete ? "−" : "+"}</span>
-              </button>
-              {openSections.complete && (
-                <div className="mt-2">
-                  {modalLoading ? (
-                    <div className="bg-gray-50 p-4 rounded-lg border text-sm text-gray-500">
-                      Loading complete template data...
-                    </div>
-                  ) : completeTemplateData ? (
-                    <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
-                      {JSON.stringify(completeTemplateData, null, 2)}
-                    </pre>
-                  ) : (
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                      <p className="text-gray-500 text-sm">Complete template data not available</p>
+                  {isPolling && (
+                    <div className="w-full bg-blue-100 rounded-full h-2 mt-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${mockupResult ? 100 : 0}%` }}
+                      />
                     </div>
                   )}
                 </div>
               )}
-            </div>
 
-            {/* Local Template Data Accordion */}
-            <div>
-              <button
-                onClick={() => toggleSection("local")}
-                className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
-              >
-                <h4 className="text-sm font-medium text-gray-900">Local Template Data</h4>
-                <span className="text-gray-500">{openSections.local ? "−" : "+"}</span>
-              </button>
-              {openSections.local && (
-                <div className="mt-2">
-                  <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
-                    {JSON.stringify(selectedTemplate, null, 2)}
-                  </pre>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {selectedTemplate.image_url && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Mockup Image</h4>
+                    <img
+                      className="w-full h-78 object-contain rounded-lg border"
+                      src={selectedTemplate.image_url}
+                      alt={selectedTemplate.product_title}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Template Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-600">Product Title:</span>
+                      <p className="text-gray-900">{selectedTemplate.product_title}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Template ID:</span>
+                      <p className="text-gray-900 font-mono text-xs">{selectedTemplate.template_id}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Created:</span>
+                      <p className="text-gray-900">{formatDate(selectedTemplate.created_at)}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Updated:</span>
+                      <p className="text-gray-900">{formatDate(selectedTemplate.updated_at)}</p>
+                    </div>
+
+                    {selectedTemplate.user_id && (
+                      <div>
+                        <span className="font-medium text-gray-600">User:</span>
+                        {userDetails ? (
+                          <div className="text-gray-900">
+                            <p className="font-medium">{userDetails.name}</p>
+                            <p className="text-sm text-gray-600">{userDetails.email}</p>
+                            <p className="text-xs text-gray-400 font-mono">ID: {selectedTemplate.user_id}</p>
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">User details not available</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Mockup Result Accordion */}
-            {mockupResult && (
-              <div>
-                <button
-                  onClick={() => toggleSection("mockup")}
-                  className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
-                >
-                  <h5 className="text-sm font-medium text-gray-900">Mockup Result</h5>
-                  <span className="text-gray-500">{openSections.mockup ? "−" : "+"}</span>
-                </button>
-                {openSections.mockup && (
-                  <div className="mt-2">
-                    <pre className="bg-white border rounded-md p-3 text-xs text-gray-700 max-h-64 overflow-auto">
-                      {JSON.stringify(mockupResult, null, 2)}
-                    </pre>
+              <div className="space-y-4 mt-6">
+                {/* Complete Template Data Accordion */}
+                <div>
+                  <button
+                    onClick={() => toggleSection("complete")}
+                    className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                  >
+                    <h4 className="text-sm font-medium text-gray-900">Complete Template Data (from Printful API)</h4>
+                    <span className="text-gray-500">{openSections.complete ? "−" : "+"}</span>
+                  </button>
+                  {openSections.complete && (
+                    <div className="mt-2">
+                      {completeTemplateData ? (
+                        <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
+                          {JSON.stringify(completeTemplateData, null, 2)}
+                        </pre>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-lg border">
+                          <p className="text-gray-500 text-sm">Complete template data not available</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Local Template Data Accordion */}
+                <div>
+                  <button
+                    onClick={() => toggleSection("local")}
+                    className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                  >
+                    <h4 className="text-sm font-medium text-gray-900">Local Template Data</h4>
+                    <span className="text-gray-500">{openSections.local ? "−" : "+"}</span>
+                  </button>
+                  {openSections.local && (
+                    <div className="mt-2">
+                      <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border max-h-64 text-gray-500">
+                        {JSON.stringify(selectedTemplate, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+
+                {/* Mockup Result Accordion */}
+                {mockupResult && (
+                  <div>
+                    <button
+                      onClick={() => toggleSection("mockup")}
+                      className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                    >
+                      <h5 className="text-sm font-medium text-gray-900">Mockup Result</h5>
+                      <span className="text-gray-500">{openSections.mockup ? "−" : "+"}</span>
+                    </button>
+                    {openSections.mockup && (
+                      <div className="mt-2">
+                        <pre className="bg-white border rounded-md p-3 text-xs text-gray-700 max-h-64 overflow-auto">
+                          {JSON.stringify(mockupResult, null, 2)}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              Close
-            </button>
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={onClose}
+                  className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  Close
+                </button>
 
-            <button
-              className={`${
-                creatingMockup || isPolling ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
-              } text-white mx-2 px-4 py-2 rounded-md text-sm font-medium cursor-pointer`}
-              onClick={handleCreateMockup}
-              disabled={creatingMockup || isPolling}
-            >
-              {creatingMockup ? "Loading..." : mockupResult ? "Create Another Mockup" : "Create Mockup"}
-            </button>
+                <button
+                  className={`${
+                    creatingMockup || isPolling ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+                  } text-white mx-2 px-4 py-2 rounded-md text-sm font-medium cursor-pointer`}
+                  onClick={handleCreateMockup}
+                  disabled={creatingMockup || isPolling}
+                >
+                  {creatingMockup ? "Loading..." : mockupResult ? "Create Another Mockup" : "Create Mockup"}
+                </button>
 
-            {mockupResult && (
-              <button
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                onClick={handleCreateShopifyProduct}
-              >
-                Create Shopify Product
-              </button>
-            )}
-          </div>
+                {mockupResult && (
+                  <button
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    onClick={handleCreateShopifyProduct}
+                  >
+                    Create Shopify Product
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
