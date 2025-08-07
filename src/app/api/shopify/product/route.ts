@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { shopify } from "@/lib/shopify";
 import { getSession } from "@/lib/session-utils";
+import { getShopify } from "@/lib/shopify";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const shopify = getShopify();
     const session = await getSession();
     const client = new shopify.clients.Graphql({ session });
 

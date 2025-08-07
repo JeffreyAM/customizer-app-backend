@@ -189,8 +189,8 @@ export default function TemplateModal({
     }
 
     try {
-      const variants = mockupResult.mockups.flatMap((mockup: any) =>
-        mockup.extras.map((extra: any) => ({
+      const variants = mockupResult.mockups.map((mockup: any) =>
+        mockup.extra.map((extra: any) => ({
           size: extra.title,
           color: extra.option,
           price: "24.99", // Default price, can be customized
@@ -217,15 +217,17 @@ export default function TemplateModal({
         body: JSON.stringify(payload),
       });
       const data: ShopifyProductCreateResponse = await response.json();
-      if (response.ok && data.body.data?.productCreate) {
-        const product = data.body.data.productCreate.product;
+
+      if (!response.ok || !data.body || !data.body.data) {
+        throw new Error(data?.error || "Failed to create Shopify product");
+      }
+
+      const product = data.body?.data?.productCreate?.product;
+      if (product) {
         toast.success(`Product created successfully: ${product.title} (ID: ${product.id})`);
         onClose();
       } else {
-        const errorMessage = data.body.data?.productCreate.userErrors
-          ? data.body.data.productCreate.userErrors.map((err: any) => err.message).join(", ")
-          : "Unknown error";
-        toast.error(`Failed to create product: ${errorMessage}`);
+        toast.error("Product creation response is missing product data.");
       }
     } catch (error: any) {
       toast.error(`Error creating Shopify product: ${error.message}`);
