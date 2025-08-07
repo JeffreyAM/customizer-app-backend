@@ -50,21 +50,11 @@ export default function TemplateModal({
     try {
       setCreatingMockup(true);
 
-      const res = await fetch(`/api/printful/product-templates/${selectedTemplate.template_id}`);
-      const templateData = await res.json();
-
-      const catalog_product_id = templateData?.result?.product_id;
-
-      if (!catalog_product_id || isNaN(Number(catalog_product_id))) {
-        toast.error("Missing or invalid catalog_product_id");
-        return;
-      }
-
       const variantIds = (selectedTemplate.variant_options || []).filter(
         (id: number) => typeof id === "number" && !isNaN(id)
       );
 
-      const placement = templateData?.result?.placements?.[0]?.placement || "front";
+      const placement = completeTemplateData?.result?.placements?.[0]?.placement || "front";
 
       const files = [
         {
@@ -92,7 +82,7 @@ export default function TemplateModal({
         body: JSON.stringify({
           template_id: selectedTemplate.id,
           product_template_id: selectedTemplate.template_id,
-          catalog_product_id,
+          catalog_product_id: completeTemplateData?.result?.product_id,
           variant_ids: variantIds,
           files,
         }),
