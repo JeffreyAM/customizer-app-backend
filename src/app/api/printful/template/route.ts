@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
-import { handleOptions } from "@/lib/cors";
+import { supabase } from "@/lib/supabase"; 
 
-const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
-const ALLOWED_ORIGINS = [
-  "https://customized-girl-edm.myshopify.com",
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001",
-];
-
-export async function OPTIONS(req: NextRequest) {
-  return handleOptions(req);
-}
-
+const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL; 
+ 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

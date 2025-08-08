@@ -1,12 +1,7 @@
-import { handleOptions } from "@/lib/cors";
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
-export async function OPTIONS(req: NextRequest) {
-  return handleOptions(req);
-}
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
