@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
-import { ShopifyProductCreateResponse } from "@/types";
+import { PrintfulProductResponse, ShopifyProductCreateResponse } from "@/types";
 
 function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -10,18 +11,19 @@ function capitalize(str: string) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  const {
-    product: { title, body_html, vendor, product_type, status },
-    variants,
-    images,
-    edmTemplateId,
-  } = body;
+  const { product_id, images, edmTemplateId } = body;
 
-  if (!title || !vendor || !product_type || !variants || !images || !edmTemplateId) {
+  if (!product_id || !images || !Array.isArray(images) || !edmTemplateId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
   try {
+    const productResponse = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/products/${product_id}`);
+
+    const productData = productResponse?.data as PrintfulProductResponse;
+    const { product } = productData.result;
+    const { variants } = productData.result;
+
     const shopify = getShopify();
     const session = await getSession();
 
@@ -65,41 +67,20 @@ export async function POST(req: NextRequest) {
       }
     `;
 
-    // Flatten the variants
-    const flatVariants = variants.flat();
-
-    // List of keys to ignore (e.g., non-option fields)
-    const ignoredKeys = ["price", "sku", "id"];
-
-    const productOptions = flatVariants.reduce((acc: any[], variant: any) => {
-      Object.entries(variant).forEach(([key, value]) => {
-        if (ignoredKeys.includes(key)) return;
-
-        const optionName = capitalize(key);
-        let option = acc.find((opt) => opt.name === optionName);
-        if (!option) {
-          option = {
-            name: optionName,
-            position: acc.length + 1,
-            values: [],
-          };
-          acc.push(option);
-        }
-
-        // Convert to { name: value } and check for duplicates
-        const valueObj = { name: value };
-        const exists = option.values.some((v: any) => v.name === value);
-        if (!exists) {
-          option.values.push(valueObj);
-        }
-      });
-
-      return acc;
-    }, []);
-
-    console.log(variants);
-
-    console.log(productOptions);
+    // Construct product options for Shopify
+    const productOptions = variants.slice(0, 3).map((variant: any, idx: number) => {
+      // Remove " / " from the name
+      const cleanName = capitalize(variant.name.replace(/ \/ /g, "-"));
+      return {
+        name: cleanName,
+        position: idx + 1,
+        values: [
+          {
+            name: variant.size || variant.color || "Default",
+          },
+        ],
+      };
+    });
 
     // Construct media inputs for image URLs
     const media = images.map((url: string, idx: number) => ({
@@ -110,11 +91,10 @@ export async function POST(req: NextRequest) {
 
     const variables = {
       product: {
-        title,
-        descriptionHtml: body_html || "",
-        vendor,
-        productType: product_type,
-        status: status || "DRAFT",
+        title: product.title,
+        descriptionHtml: product.description,
+        vendor: "Printful-EDM",
+        status: "ACTIVE",
         tags: [`edm_template_id_${edmTemplateId}`],
         productOptions,
       },
@@ -131,6 +111,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { productCreate } = data;
+
+    console.log("Shopify product create response:", productCreate);
 
     if (productCreate.userErrors.length > 0) {
       return NextResponse.json({ error: "Shopify error", details: productCreate.userErrors }, { status: 400 });

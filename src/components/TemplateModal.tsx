@@ -193,26 +193,15 @@ export default function TemplateModal({
 
     setCreateShopifyProductLoading(true);
     try {
-      const variants = mockupResult.mockups.map((mockup: any) =>
-        mockup.extra.map((extra: any) => ({
-          size: extra.title,
-          color: extra.option,
-          price: "24.99", // Default price, can be customized
-        }))
-      );
-      const images = mockupResult.mockups.map((mockup: any) => mockup.mockup_url);
+      // Add mockup url and extra images
+      const mockImages = mockupResult.mockups
+        .map((mockup: any) => [...(mockup.extra?.map((img: any) => img.url) || []), mockup.mockup_url])
+        .flat();
 
       const payload = {
-        product: {
-          title: completeTemplateData?.result?.title || selectedTemplate.product_title,
-          body_html: `<p>Product created from template: ${selectedTemplate.template_id}</p>`,
-          vendor: "EDMBrand",
-          product_type: "Shirt",
-          status: "ACTIVE",
-        },
-        variants,
-        images: images,
-        edmTemplateId: selectedTemplate.template_id,
+        product_id: completeTemplateData?.result?.product_id,
+        images: mockImages,
+        edmTemplateId: completeTemplateData?.result?.id,
       };
 
       const response = await fetch("/api/shopify/product", {
