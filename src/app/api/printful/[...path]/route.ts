@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const PRINTFUL_API_BASE = 'https://api.printful.com';
+const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
 const ALLOWED_ORIGINS = [
   'https://customized-girl-edm.myshopify.com',
   'http://localhost:3000',

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
+const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
 const STORE_ID = 16414489;
 
 const POLLING_INTERVAL = 5000; // ms
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     //Printful API endpoint for mockup generation
-    const createUrl = `https://api.printful.com/mockup-generator/create-task/${catalog_product_id}`;
+    const createUrl = `${PRINTFUL_API_BASE}/mockup-generator/create-task/${catalog_product_id}`;
 
     const payload = {
       variant_ids,
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function pollPrintfulTask(task_key: string) {
-  const statusUrl = `https://api.printful.com/mockup-generator/task?task_key=${task_key}`;
+  const statusUrl = `${PRINTFUL_API_BASE}/mockup-generator/task?task_key=${task_key}`;
 
   while (true) {
     await new Promise((res) => setTimeout(res, POLLING_INTERVAL));
