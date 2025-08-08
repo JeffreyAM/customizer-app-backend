@@ -26,9 +26,7 @@ export async function POST(req: NextRequest) {
       !catalog_product_id ||
       isNaN(Number(catalog_product_id)) ||
       !Array.isArray(variant_ids) ||
-      variant_ids.length === 0 ||
-      !Array.isArray(files) ||
-      files.length === 0
+      variant_ids.length === 0
     ) {
       return NextResponse.json(
         {
@@ -43,11 +41,11 @@ export async function POST(req: NextRequest) {
 
     const payload = {
       variant_ids,
-      files,
       format,
       width,
       mockup_style_ids,
       product_template_id: parseInt(product_template_id, 10) || undefined,
+      ...(files && files.length > 0 ? { files } : undefined),
     };
 
     const headers: HeadersInit = {

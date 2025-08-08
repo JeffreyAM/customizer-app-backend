@@ -72,11 +72,6 @@ export default function TemplateModal({
         },
       ];
 
-      if (!files.length || !files[0].image_url) {
-        toast.error("Missing design file");
-        return;
-      }
-
       const response = await fetch("/api/printful/mockup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,7 +80,6 @@ export default function TemplateModal({
           product_template_id: selectedTemplate.template_id,
           catalog_product_id: completeTemplateData?.result?.product_id,
           variant_ids: variantIds,
-          files,
         }),
       });
 
