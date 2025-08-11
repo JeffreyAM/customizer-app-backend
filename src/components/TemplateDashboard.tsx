@@ -110,15 +110,6 @@ export default function TemplateDashboard() {
         <div className="px-4 py-6 sm:px-0">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
-          <div className="py-2">
-            <Link
-              href="/syncedProducts"
-              className="inline-block px-4 py-2 bg-amber-400 hover:bg-amber-500 text-black font-medium rounded-lg shadow transition-colors duration-200"
-            >
-              View Synced Products
-            </Link>
-          </div>
-
           <h2 className="text-lg font-medium text-gray-900">Your Templates</h2>
 
           <div className="bg-white shadow overflow-hidden sm:rounded-md">

@@ -37,14 +37,6 @@ export default function SyncProductsDashboard() {
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div className="px-4 py-6 sm:px-0">
                     {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
-                    <div className="py-2">
-                        <Link
-                            href="/dashboard"
-                            className="inline-block px-4 py-2 bg-amber-400 hover:bg-amber-500 text-black font-medium rounded-lg shadow transition-colors duration-200"
-                        >
-                            View Templates
-                        </Link>
-                    </div>
 
                     <h2 className="text-lg font-medium text-gray-900">Your Synced Products</h2>
 
