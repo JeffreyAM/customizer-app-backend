@@ -7,8 +7,8 @@ import { Template, MockupData, UserDetails } from "../types";
 import { formatDate, fetchUserDetails } from "../utils/common";
 import TemplateList from "./TemplateList";
 import TemplateModal from "./TemplateModal";
-import SyncProductsDashboard from "./SyncProductsDashboard";
 import Link from "next/link";
+import Header from "./Header";
 
 export default function TemplateDashboard() {
   const { user, signOut } = useAuth();
@@ -105,30 +105,21 @@ export default function TemplateDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster />
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">Template Dashboard</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, Admin</span>
-              <button
-                onClick={signOut}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
+      <Header />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
-          <div className="px-3 py-2 bg-amber-300">
-            <Link href="/syncedProducts">View Synced Products</Link>
+          <div className="py-2">
+            <Link
+              href="/syncedProducts"
+              className="inline-block px-4 py-2 bg-amber-400 hover:bg-amber-500 text-black font-medium rounded-lg shadow transition-colors duration-200"
+            >
+              View Synced Products
+            </Link>
           </div>
+
+          <h2 className="text-lg font-medium text-gray-900">Your Templates</h2>
 
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <div className="px-4 py-5 sm:px-6">

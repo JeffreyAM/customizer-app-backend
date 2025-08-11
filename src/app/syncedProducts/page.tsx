@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/components/AuthProvider';
 import LoginForm from '@/components/LoginForm';
-import SyncedProductsTemplate from '@/components/SyncProductsDashboard';
+import SyncedProductsTemplate from '@/components/SyncedProductsDashboard';
 
 export default function SyncedProductsPage() {
   const { user, loading } = useAuth();
