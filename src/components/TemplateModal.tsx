@@ -309,16 +309,16 @@ export default function TemplateModal({
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {selectedTemplate.image_url && (
+                {selectedTemplate.image_url || completeTemplateData?.result?.mockup_file_url ? (
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Mockup Image</h4>
                     <img
                       className="w-full h-78 object-contain rounded-lg border"
-                      src={selectedTemplate.image_url}
+                      src={selectedTemplate.image_url || completeTemplateData?.result?.mockup_file_url}
                       alt={selectedTemplate.product_title}
                     />
                   </div>
-                )}
+                ) : null}
 
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Template Information</h4>
