@@ -189,13 +189,14 @@ export default function TemplateModal({
     try {
       // Add mockup url and extra images
       const mockImages = mockupResult.mockups
-        .map((mockup: any) => [...(mockup.extra?.map((img: any) => img.url) || []), mockup.mockup_url])
+        .map((mockup: any) => [mockup.mockup_url, ...(mockup.extra?.map((img: any) => img.url) || [])])
         .flat();
 
       const payload = {
         product_id: completeTemplateData?.result?.product_id,
         images: mockImages,
         edmTemplateId: completeTemplateData?.result?.id,
+        availableVariantIds: completeTemplateData?.result?.available_variant_ids || [],
       };
 
       const response = await fetch("/api/shopify/product", {

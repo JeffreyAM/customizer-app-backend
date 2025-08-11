@@ -3,6 +3,9 @@ import axios from "axios";
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
 import { PrintfulProductResponse, ShopifyProductCreateResponse } from "@/types";
+import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
+import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
+import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
 
 // capitalizes a string
 function capitalize(str: string) {
@@ -69,61 +72,40 @@ function buildProductOptionsAndVariants(variants: any[]) {
   return { productOptions, shopifyVariants };
 }
 
-// function for creating product variants
-async function createProductVariants(
+// Update product variants in Shopify
+async function bulkVariantOperation(
   client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
   productId: string,
-  variants: Array<any>
+  variants: any[],
+  operation: "productVariantsBulkCreate" | "productVariantsBulkUpdate",
+  chunkSize = 10
 ) {
-  if (!variants.length || !productId) return;
+  if (!productId || !variants?.length) return [];
 
-  const variantMutation = `
-    mutation productVariantsBulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkCreate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          title
-          price
-          barcode
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-  `;
+  const mutation =
+    operation === "productVariantsBulkCreate" ? PRODUCT_VARIANTS_BULK_CREATE : PRODUCT_VARIANTS_BULK_UPDATE;
 
-  // split into 10
-  const chunks = chunkArray(variants, 10);
-  const createdVariants: any[] = [];
+  const chunks = chunkArray(variants, chunkSize);
+  const results = [];
 
   for (const chunk of chunks) {
-    try {
-      const variables = { productId, variants: chunk };
-      const response = await client.request(variantMutation, { variables });
-      const variantData = response.data?.productVariantsBulkCreate;
+    const res = await client.request(mutation, { variables: { productId, variants: chunk } });
+    const data = res.data?.[operation];
 
-      if (variantData?.userErrors?.length > 0) {
-        console.warn("Variant creation errors:", variantData.userErrors);
-      }
-
-      if (variantData?.productVariants) {
-        createdVariants.push(...variantData.productVariants);
-      }
-    } catch (err) {
-      console.error("Error creating variants: ", err);
+    if (data?.userErrors?.length) {
+      console.warn(`${operation} errors:`, data.userErrors);
+    }
+    if (data?.productVariants) {
+      results.push(...data.productVariants);
     }
   }
 
-  console.log("Created variants:", createdVariants.length);
-  console.log("Created variant details:", createdVariants);
-
-  return createdVariants;
+  return results;
 }
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { product_id, images, edmTemplateId } = body;
+  const { product_id, images, edmTemplateId, availableVariantIds } = body;
 
   // validate request body
   if (!product_id || !images || !Array.isArray(images) || !edmTemplateId) {
@@ -139,12 +121,14 @@ export async function POST(req: NextRequest) {
 
     const { product, variants } = productData.result;
 
-  
+    // Get only available variants based on availableVariantIds
+    const availableVariants = variants.filter((v) => availableVariantIds.includes(v.id));
+
     const shopify = getShopify();
     const session = await getSession();
     const client = new shopify.clients.Graphql({ session });
 
-    const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(variants);
+    const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availableVariants);
 
     const media = images.map((url: string, idx: number) => ({
       originalSource: url,
@@ -152,53 +136,13 @@ export async function POST(req: NextRequest) {
       alt: `Mockup image ${idx + 1}`,
     }));
 
-    const mutation = `
-      mutation productCreate($product: ProductCreateInput!, $media: [CreateMediaInput!]) {
-        productCreate(product: $product, media: $media) {
-          product {
-            id
-            title
-            tags
-            options {
-              name
-              values
-            }
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  title
-                  price
-                }
-              }
-            }
-            media(first: 10) {
-              edges {
-                node {
-                  mediaContentType
-                  ... on MediaImage {
-                    image {
-                      originalSrc
-                      altText
-                    }
-                  }
-                }
-              }
-            }
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `;
+    const mutation = PRODUCT_CREATE;
 
     const variables = {
       product: {
         title: product.title,
         descriptionHtml: product.description,
-        vendor: "Printful-EDM",
+        vendor: "Customized Girl EDM",
         status: "ACTIVE",
         tags: [`edm_template_id_${edmTemplateId}`],
         productOptions,
@@ -213,13 +157,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });
     }
 
-
-
     if (data.userErrors.length > 0) {
       return NextResponse.json({ error: "Shopify error", details: data.userErrors }, { status: 400 });
     }
 
-    await createProductVariants(client, data.product.id, shopifyVariants);
+    // Update the first created Shopify variant with correct price
+    const createdShopifyVariant = data.product.variants.edges[0].node;
+    const matchingVariant = shopifyVariants[0]; // Assuming the first variant is the one we want to update
+
+    const updatedVariant = await bulkVariantOperation(
+      client,
+      data.product.id,
+      [{ id: createdShopifyVariant.id, price: matchingVariant?.price || "0.00" }],
+      "productVariantsBulkUpdate"
+    );
+
+    if (!updatedVariant) {
+      return NextResponse.json({ error: "Failed to update the first variant" }, { status: 500 });
+    }
+
+    // Create product variants if more than one
+    if (shopifyVariants.length > 1)
+      await bulkVariantOperation(client, data.product.id, shopifyVariants, "productVariantsBulkCreate");
 
     return NextResponse.json({ productCreate: data }, { status: 201 });
   } catch (error) {
@@ -237,7 +196,7 @@ async function syncShopifyProductToPrintful(
       sync_product: {
         external_id: shopifyProduct.id,
         name: shopifyProduct.title,
-        thumbnail: shopifyProduct.media.edges[0]?.node.image?.originalSrc || "",
+        thumbnail: shopifyProduct.media.edges[0]?.node.image?.originalSrc ?? "",
         is_ignored: false, // Set to true if you want to ignore this product
       },
       // sync_variants: shopifyProduct.variants.edges.map((edge) => ({
@@ -245,7 +204,7 @@ async function syncShopifyProductToPrintful(
       //   variant_id: printfulProduct.
       //   // retail_price: edge.node.price,
       //   // is_ignored: false, // Set to true if you want to ignore this variant
-      //   // sku: edge.node.sku || "",
+      //   // sku: edge.node.sku ?? "",
       //   // files: [], // Add file handling logic if needed
       //   // options: [], // Add options handling logic if needed
       //   // availability_status: "active", // Adjust based on your logic

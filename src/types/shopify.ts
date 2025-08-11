@@ -31,6 +31,7 @@ export type ShopifyProductVariantsConnection = {
 export type ShopifyProductCreateResponse = {
   productCreate: {
     product: {
+      media: any;
       id: string;
       title: string;
       options: Array<{
