@@ -228,34 +228,35 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function syncShopifyProductToPrintful(
-  shopifyProduct: ShopifyProductCreateResponse["productCreate"]["product"],
-  printfulProduct: PrintfulProductResponse["result"]["product"]
-) {
-  try {
-    const payload = {
-      sync_product: {
-        external_id: shopifyProduct.id,
-        name: shopifyProduct.title,
-        thumbnail: shopifyProduct.media.edges[0]?.node.image?.originalSrc || "",
-        is_ignored: false, // Set to true if you want to ignore this product
-      },
-      // sync_variants: shopifyProduct.variants.edges.map((edge) => ({
-      //   external_id: edge.node.id,
-      //   variant_id: printfulProduct.
-      //   // retail_price: edge.node.price,
-      //   // is_ignored: false, // Set to true if you want to ignore this variant
-      //   // sku: edge.node.sku || "",
-      //   // files: [], // Add file handling logic if needed
-      //   // options: [], // Add options handling logic if needed
-      //   // availability_status: "active", // Adjust based on your logic
-      // })),
-    };
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/store/products`, payload);
+// async function syncShopifyProductToPrintful(
+//   shopifyProduct: ShopifyProductCreateResponse["productCreate"]["product"],
+//   printfulProduct: PrintfulProductResponse["result"]["product"]
+// ) {
+//   try {
+//     const payload = {
+//       sync_product: {
+//         external_id: shopifyProduct.id,
+//         name: shopifyProduct.title,
+//         thumbnail: shopifyProduct.media.edges[0]?.node.image?.originalSrc || "",
+//         is_ignored: false, // Set to true if you want to ignore this product
+//       },
+//       // sync_variants: shopifyProduct.variants.edges.map((edge) => ({
+//       //   external_id: edge.node.id,
+//       //   variant_id: printfulProduct.
+//       //   // retail_price: edge.node.price,
+//       //   // is_ignored: false, // Set to true if you want to ignore this variant
+//       //   // sku: edge.node.sku || "",
+//       //   // files: [], // Add file handling logic if needed
+//       //   // options: [], // Add options handling logic if needed
+//       //   // availability_status: "active", // Adjust based on your logic
+//       // })),
+//     };
+    
+//     const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/store/products`, payload);
 
-    return response.data;
-  } catch (error) {
-    console.error("Error syncing Shopify product to Printful:", error);
-    throw new Error("Failed to sync product with Printful");
-  }
-}
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error syncing Shopify product to Printful:", error);
+//     throw new Error("Failed to sync product with Printful");
+//   }
+// }

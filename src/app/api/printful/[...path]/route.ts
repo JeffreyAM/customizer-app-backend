@@ -1,7 +1,9 @@
+//api/printful/[...path]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import axios from "axios"; 
 
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
+const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 
 type RouteContext = {
   params: Promise<{ path: string[] }>;
@@ -34,6 +36,7 @@ async function proxyRequest(req: NextRequest, subpath: string, method: string) {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
+    "X-PF-Store-ID": STORE_ID ,
   };
 
   try {

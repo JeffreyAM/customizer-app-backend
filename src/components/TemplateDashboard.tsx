@@ -7,6 +7,8 @@ import { Template, MockupData, UserDetails } from "../types";
 import { formatDate, fetchUserDetails } from "../utils/common";
 import TemplateList from "./TemplateList";
 import TemplateModal from "./TemplateModal";
+import SyncProductsDashboard from "./SyncProductsDashboard";
+import Link from "next/link";
 
 export default function TemplateDashboard() {
   const { user, signOut } = useAuth();
@@ -123,6 +125,10 @@ export default function TemplateDashboard() {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+
+          <div className="px-3 py-2 bg-amber-300">
+            <Link href="/syncedProducts">View Synced Products</Link>
+          </div>
 
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <div className="px-4 py-5 sm:px-6">
