@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
-const STORE_ID = 16414489;
+const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 
 const POLLING_INTERVAL = 5000; // ms
 

@@ -3,7 +3,8 @@ import axios from 'axios';
 import { supabase } from "@/lib/supabase"; 
 
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL; 
- 
+const STORE_ID = process.env.PRINTFUL_STORE_ID!;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'X-PF-Store-Id': 16414489,
+        'X-PF-Store-Id': STORE_ID,
       },
       data: {
         product_template_id: templateId
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     const templateResponse = await axios.get(`${PRINTFUL_API_BASE}/product-templates/${templateId}`, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "X-PF-Store-Id": 16414489,
+        "X-PF-Store-Id": STORE_ID,
       },
       timeout: 10000,
       validateStatus: () => true,
@@ -156,7 +157,7 @@ async function updateMockupUrlInBackground(templateId: string, apiKey: string, m
       const templateResponse = await axios.get(`${PRINTFUL_API_BASE}/product-templates/${templateId}`, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          "X-PF-Store-Id": 16414489,
+          "X-PF-Store-Id": STORE_ID,
         },
         timeout: 10000,
         validateStatus: () => true,
