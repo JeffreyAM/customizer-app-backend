@@ -177,8 +177,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Create product variants if more than one
-    if (shopifyVariants.length > 1)
-      await bulkVariantOperation(client, data.product.id, shopifyVariants, "productVariantsBulkCreate");
+    if (shopifyVariants.length > 1) {
+      const variantsToCreate = shopifyVariants.slice(1); // Skip the first variant as it's already created
+      await bulkVariantOperation(client, data.product.id, variantsToCreate, "productVariantsBulkCreate");
+    }
 
     return NextResponse.json({ productCreate: data }, { status: 201 });
   } catch (error) {
