@@ -7,7 +7,7 @@ const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 
 type RouteContext = {
   params: Promise<{ path: string[] }>;
-}; 
+};
 
 export async function GET(req: NextRequest, context: RouteContext) {
   const params = await context.params;
