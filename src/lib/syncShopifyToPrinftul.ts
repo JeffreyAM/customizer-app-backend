@@ -14,6 +14,9 @@ export async function syncShopifyProductToPrintful(
   printfulVariants: PrintfulProductResponse["result"]["variants"],
   shopifyProductID: string
 ) {
+  // delay for 1 second
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   try {
     const query = GET_PRODUCT;
     const shopifyProductResponse = await client.request<ShopifyProductResponse>(query, {
@@ -30,6 +33,7 @@ export async function syncShopifyProductToPrintful(
       .from("templates")
       .select("*")
       .eq("template_id", edmTemplateId)
+      .order("id", { ascending: false })
       .limit(1);
 
     if (templatesError) {
@@ -40,6 +44,7 @@ export async function syncShopifyProductToPrintful(
       .from("mockup_tasks")
       .select("*")
       .eq("template_id", templates?.[0]?.id)
+      .order("id", { ascending: false })
       .limit(1);
 
     if (mockupTasksError) {
@@ -50,6 +55,7 @@ export async function syncShopifyProductToPrintful(
       .from("mockup_results")
       .select("*")
       .eq("task_key", mockupTasks?.[0]?.task_key)
+      .order("id", { ascending: false })
       .limit(1);
 
     if (mockupResultsError) {
@@ -133,9 +139,11 @@ function buildSyncPayload(
   edmTemplateId: string,
   mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
 ) {
+  const id = shopifyProduct.id.split("/").pop();
+
   return {
     sync_product: {
-      external_id: shopifyProduct.id,
+      external_id: id,
       name: shopifyProduct.title,
       thumbnail: shopifyProduct.media?.nodes?.[0]?.preview?.image?.url || "",
       is_ignored: false,
