@@ -21,19 +21,41 @@ export default function ProductCard({ product, onClick }: Props) {
                         <p className="text-sm font-medium text-indigo-600 truncate">{product.name}</p>
                         <p className="text-sm text-gray-500">Product ID: {product.external_id}</p>
                         <div className="flex gap-2">
-                            <p className="text-sm text-gray-500">Synced: {
-                                product.synced ? "Yes" : "No"
-                            }</p>
-
-                            <p className="text-sm text-gray-500">Is Ignored: {
-                                product.is_ignored ? "Yes" : "No"
-                            }</p>
+                            <p className="text-sm text-gray-500 bg-gray-200 py-0.5 px-2 rounded-2xl">{product.synced ? "Synced" : "Not Synced"}</p>
+                            <p className="text-sm text-gray-500 bg-gray-200 py-0.5 px-2 rounded-2xl">{product.is_ignored ? "Ignored" : "Not Ignored"}</p>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex-shrink-0 text-sm text-gray-500">
-                    {product.variants} variants
+
+                    <div className="flex-shrink-0 text-sm text-gray-500 flex flex-col items-end gap-2">
+                        <span>{product.variants} variants</span>
+                        {product.synced ? (
+                            <button
+                                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    //  unsync handler 
+                                    console.log("Unsyncing product:", product.id);
+                                }}
+                            >
+                                Unsync
+                            </button>
+                        ) : (
+                            <button
+                                className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // sync handler
+                                    console.log("Syncing product:", product.id);
+                                }}
+                            >
+                                Sync
+                            </button>
+                        )}
+                    </div>
+
                 </div>
             </div>
         </li>
