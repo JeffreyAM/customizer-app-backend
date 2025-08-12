@@ -4,15 +4,13 @@ export const PRODUCT_CREATE = `
       product {
         id title tags
         options { name values }
-        variants(first: 10) { edges { node { id title price } } }
+        variants(first: 10) { nodes { id title price } }
         media(first: 10) {
-          edges {
-            node {
-              mediaContentType
-              ... on MediaImage {
-                image { originalSrc altText }
-              }
-            }
+          nodes { 
+            mediaContentType
+            ... on MediaImage {
+              image { originalSrc altText }
+            } 
           }
         }
       }

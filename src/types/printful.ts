@@ -66,3 +66,17 @@ export type PrintfulProductResponse = {
     }>;
   };
 };
+
+
+export type PrintfulProductSyncResponse = {
+  code: number;
+  result: {
+    id: number;
+    external_id: string;
+    name: string;
+    variants: number;
+    synced: number;
+    thumbnail_url: string;
+    is_ignored: boolean;
+  };
+};

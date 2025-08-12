@@ -7,6 +7,14 @@ export type ShopifyProductVariant = {
     name: string;
     value: string;
   }>;
+  sku: string | null;
+  metafields: {
+    nodes: Array<{
+      id: string;
+      key: string;
+      value: string;
+    }>;
+  };
 };
 
 export type ShopifyProductVariantsBulkCreateResponse = {
@@ -18,11 +26,9 @@ export type ShopifyProductVariantsBulkCreateResponse = {
     }>;
   };
 };
-export type ShopifyProductVariantEdge = {
-  node: ShopifyProductVariant;
-};
+
 export type ShopifyProductVariantsConnection = {
-  edges: ShopifyProductVariantEdge[];
+  nodes: ShopifyProductVariant[];
   pageInfo: {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
@@ -48,3 +54,32 @@ export type ShopifyProductCreateResponse = {
     }>;
   };
 };
+
+// response for getting shopify product
+export type ShopifyProductResponse = {
+  product: {
+    id: string;
+    title: string;
+    description: string;
+    vendor: string;
+    media: {
+      nodes: Array<{
+        id: string;
+        alt: string;
+        preview: {
+          image: {
+            id: string;
+            url: string;
+          };
+        };
+      }>;
+    };
+    options: Array<{
+      id: string;
+      name: string;
+      values: Array<string>;
+    }>;
+    variants: ShopifyProductVariantsConnection;
+    totalVariants: number;
+  };
+}; 

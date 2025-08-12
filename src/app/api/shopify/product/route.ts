@@ -1,11 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
-import { PrintfulProductResponse, ShopifyProductCreateResponse } from "@/types";
+import { supabase } from "@/lib/supabase";
 import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
 import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
+import { GET_PRODUCT } from "@/queries/shopify/getProduct";
+import {
+  PrintfulProductResponse,
+  PrintfulProductSyncResponse,
+  ShopifyProductCreateResponse,
+  ShopifyProductResponse,
+} from "@/types";
+import axios from "axios";
+import { NextRequest, NextResponse } from "next/server";
 
 // capitalizes a string
 function capitalize(str: string) {
@@ -66,6 +73,13 @@ function buildProductOptionsAndVariants(variants: any[]) {
       optionValues,
       price: String(v.price || "0.00"),
       barcode: v.id.toString(),
+      metafields: [
+        {
+          key: `printful_variant_id`,
+          type: "single_line_text_field",
+          value: `${v.id}`,
+        },
+      ],
     };
   });
 
@@ -103,6 +117,37 @@ async function bulkVariantOperation(
   return results;
 }
 
+async function createShopifyProduct(
+  client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
+  productOptions: Array<Record<string, any>>,
+  images: string[],
+  edmTemplateId: string,
+  productData: PrintfulProductResponse["result"]["product"]
+) {
+  const media = images.map((url: string, idx: number) => ({
+    originalSource: url,
+    mediaContentType: "IMAGE",
+    alt: `Mockup image ${idx + 1}`,
+  }));
+
+  const mutation = PRODUCT_CREATE;
+
+  const variables = {
+    product: {
+      title: productData.title,
+      descriptionHtml: productData.description,
+      vendor: "Customized Girl EDM",
+      status: "ACTIVE",
+      tags: [`edm_template_id_${edmTemplateId}`],
+      productOptions,
+    },
+    media,
+  };
+
+  const response = await client.request<ShopifyProductCreateResponse>(mutation, { variables });
+  return response.data?.productCreate;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { product_id, images, edmTemplateId, availableVariantIds } = body;
@@ -113,62 +158,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const productResponse = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/products/${product_id}`);
+    const printfulProductResponse = await axios.get(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/products/${product_id}`
+    );
 
-    console.log("Product response:", productResponse.data);
+    const printfulProductData = printfulProductResponse.data as PrintfulProductResponse;
 
-    const productData = productResponse.data as PrintfulProductResponse;
-
-    const { product, variants } = productData.result;
+    const { product: printfulProduct, variants: printfulProductVariants } = printfulProductData.result;
 
     // Get only available variants based on availableVariantIds
-    const availableVariants = variants.filter((v) => availableVariantIds.includes(v.id));
+    const availablePrintfulProductVariants = printfulProductVariants.filter((v) => availableVariantIds.includes(v.id));
 
     const shopify = getShopify();
     const session = await getSession();
     const client = new shopify.clients.Graphql({ session });
 
-    const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availableVariants);
+    const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availablePrintfulProductVariants);
 
-    const media = images.map((url: string, idx: number) => ({
-      originalSource: url,
-      mediaContentType: "IMAGE",
-      alt: `Mockup image ${idx + 1}`,
-    }));
+    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
 
-    const mutation = PRODUCT_CREATE;
-
-    const variables = {
-      product: {
-        title: product.title,
-        descriptionHtml: product.description,
-        vendor: "Customized Girl EDM",
-        status: "ACTIVE",
-        tags: [`edm_template_id_${edmTemplateId}`],
-        productOptions,
-      },
-      media,
-    };
-
-    const response = await client.request<ShopifyProductCreateResponse>(mutation, { variables });
-    const data = response.data?.productCreate;
-
-    if (!data) {
+    if (!shopifyProduct) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });
     }
 
-    if (data.userErrors.length > 0) {
-      return NextResponse.json({ error: "Shopify error", details: data.userErrors }, { status: 400 });
+    if (shopifyProduct.userErrors.length > 0) {
+      return NextResponse.json({ error: "Shopify error", details: shopifyProduct.userErrors }, { status: 400 });
     }
 
     // Update the first created Shopify variant with correct price
-    const createdShopifyVariant = data.product.variants.edges[0].node;
+    const createdShopifyVariant = shopifyProduct.product.variants.nodes[0];
     const matchingVariant = shopifyVariants[0]; // Assuming the first variant is the one we want to update
 
     const updatedVariant = await bulkVariantOperation(
       client,
-      data.product.id,
-      [{ id: createdShopifyVariant.id, price: matchingVariant?.price || "0.00" }],
+      shopifyProduct.product.id,
+      [{ ...matchingVariant, id: createdShopifyVariant.id }], // Update the variant ID
       "productVariantsBulkUpdate"
     );
 
@@ -179,45 +203,154 @@ export async function POST(req: NextRequest) {
     // Create product variants if more than one
     if (shopifyVariants.length > 1) {
       const variantsToCreate = shopifyVariants.slice(1); // Skip the first variant as it's already created
-      await bulkVariantOperation(client, data.product.id, variantsToCreate, "productVariantsBulkCreate");
+      await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
     }
 
-    return NextResponse.json({ productCreate: data }, { status: 201 });
+    // Run printful product sync in background
+    syncShopifyProductToPrintful(
+      client,
+      edmTemplateId,
+      availablePrintfulProductVariants,
+      shopifyProduct.product.id
+    ).catch((err) => console.error("Background sync error:", err));
+
+    return NextResponse.json({ productCreate: shopifyProduct }, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
     return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
   }
 }
 
-// async function syncShopifyProductToPrintful(
-//   shopifyProduct: ShopifyProductCreateResponse["productCreate"]["product"],
-//   printfulProduct: PrintfulProductResponse["result"]["product"]
-// ) {
-//   try {
-//     const payload = {
-//       sync_product: {
-//         external_id: shopifyProduct.id,
-//         name: shopifyProduct.title,
-//         thumbnail: shopifyProduct.media.edges[0]?.node.image?.originalSrc || "",
-//         is_ignored: false, // Set to true if you want to ignore this product
-//       },
-//       // sync_variants: shopifyProduct.variants.edges.map((edge) => ({
-//       //   external_id: edge.node.id,
-//       //   variant_id: printfulProduct.
-//       //   // retail_price: edge.node.price,
-//       //   // is_ignored: false, // Set to true if you want to ignore this variant
-//       //   // sku: edge.node.sku || "",
-//       //   // files: [], // Add file handling logic if needed
-//       //   // options: [], // Add options handling logic if needed
-//       //   // availability_status: "active", // Adjust based on your logic
-//       // })),
-//     };
-    
-//     const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/store/products`, payload);
+async function syncShopifyProductToPrintful(
+  client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
+  edmTemplateId: string,
+  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  shopifyProductID: string
+) {
+  try {
+    const query = GET_PRODUCT;
+    const shopifyProductResponse = await client.request<ShopifyProductResponse>(query, {
+      variables: { ownerId: shopifyProductID },
+    });
 
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error syncing Shopify product to Printful:", error);
-//     throw new Error("Failed to sync product with Printful");
-//   }
-// }
+    if (!shopifyProductResponse.data) {
+      throw new Error("Shopify product response data is undefined");
+    }
+
+    const shopifyProduct = shopifyProductResponse.data.product;
+
+    const { data: templates, error: templatesError } = await supabase
+      .from("templates")
+      .select("*")
+      .eq("template_id", edmTemplateId)
+      .limit(1);
+
+    if (templatesError) {
+      throw new Error("Failed to fetch templates: " + JSON.stringify(templatesError));
+    }
+
+    const { data: mockupTasks, error: mockupTasksError } = await supabase
+      .from("mockup_tasks")
+      .select("*")
+      .eq("template_id", templates?.[0]?.id)
+      .limit(1);
+
+    if (mockupTasksError) {
+      throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupTasksError));
+    }
+
+    const { data: mockupResults, error: mockupResultsError } = await supabase
+      .from("mockup_results")
+      .select("*")
+      .eq("task_key", mockupTasks?.[0]?.task_key)
+      .limit(1);
+
+    if (mockupResultsError) {
+      throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
+    }
+
+    const payload = buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
+
+    const response = await axios.post<PrintfulProductSyncResponse>(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/store/products`,
+      payload
+    );
+
+    if (response.status !== 200) {
+      throw new Error("Failed to sync product with Printful: " + JSON.stringify(response.data));
+    }
+
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error("Failed to sync product with Printful: " + JSON.stringify(error.response?.data));
+    } else {
+      throw new Error("Unexpected error: " + JSON.stringify(error));
+    }
+  }
+}
+
+function getPrintfulVariantIdFromShopifyVariantMetaFields(
+  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  metafields: ShopifyProductResponse["product"]["variants"]["nodes"][number]["metafields"]["nodes"]
+): number | null {
+  for (const variant of printfulVariants) {
+    const metafield = metafields.find((m) => m.key === "printful_variant_id" && m.value === variant.id.toString());
+    if (metafield) {
+      return variant.id;
+    }
+  }
+  return null;
+}
+
+function getPrintFilesForVariant(
+  variantId: number | null,
+  mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
+) {
+  if (!variantId || !mockupResults?.[0]?.printfiles) return [];
+  return mockupResults[0].printfiles
+    .filter((file) => file.variant_ids.includes(variantId))
+    .map((file) => ({ url: file.url }));
+}
+
+function mapSyncVariant(
+  shopifyVariant: ShopifyProductResponse["product"]["variants"]["nodes"][number],
+  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
+) {
+  const variantId = getPrintfulVariantIdFromShopifyVariantMetaFields(printfulVariants, shopifyVariant.metafields.nodes);
+
+  return {
+    external_id: shopifyVariant.id,
+    variant_id: variantId,
+    retail_price: shopifyVariant.price,
+    is_ignored: false,
+    sku: shopifyVariant.sku || "",
+    files: getPrintFilesForVariant(variantId, mockupResults),
+    options: shopifyVariant.selectedOptions.map((option) => ({
+      id: option.name,
+      value: option.value,
+    })),
+    availability_status: "active",
+  };
+}
+
+function buildSyncPayload(
+  shopifyProduct: ShopifyProductResponse["product"],
+  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  edmTemplateId: string,
+  mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
+) {
+  return {
+    sync_product: {
+      external_id: shopifyProduct.id,
+      name: shopifyProduct.title,
+      thumbnail: shopifyProduct.media?.nodes?.[0]?.preview?.image?.url || "",
+      is_ignored: false,
+      tags: [`edm_template_id_${edmTemplateId}`],
+    },
+    sync_variants: shopifyProduct.variants.nodes.map((variant) =>
+      mapSyncVariant(variant, printfulVariants, mockupResults)
+    ),
+  };
+}
