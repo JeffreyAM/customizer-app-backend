@@ -46,7 +46,7 @@ export default function SyncProductsDashboard() {
                             <p className="mt-1 max-w-2xl text-sm text-gray-500">Saved Designs ({products.length} total)</p>
                         </div>
                         {loading ? (
-                            <div className="text-center py-12 text-gray-500">Loading templates...</div>
+                            <div className="text-center py-12 text-gray-500">Loading Products...</div>
                         ) : (
                             <SyncedProductsList products={products} onProductClick={(product) => { console.log("Mock click handler: ", product) }} />
                         )}

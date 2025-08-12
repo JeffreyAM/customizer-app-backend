@@ -2,16 +2,13 @@
 
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { useAuth } from "./AuthProvider";
 import { Template, MockupData, UserDetails } from "../types";
 import { formatDate, fetchUserDetails } from "../utils/common";
 import TemplateList from "./TemplateList";
 import TemplateModal from "./TemplateModal";
-import Link from "next/link";
 import Header from "./Header";
 
 export default function TemplateDashboard() {
-  const { user, signOut } = useAuth();
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
