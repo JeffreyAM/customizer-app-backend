@@ -1,16 +1,16 @@
+//SyncProductsDashboard.tsx
 import { useEffect, useState } from "react";
 import { useAuth } from "./AuthProvider";
 import { Toaster } from "react-hot-toast";
-import Link from "next/link";
 import SyncedProductsList from "./SyncedProductsList";
 import Header from "./Header";
+
 
 export default function SyncProductsDashboard() {
     const { user, signOut } = useAuth();
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-
 
     const fetchSyncedProducts = async () => {
         try {
@@ -48,7 +48,11 @@ export default function SyncProductsDashboard() {
                         {loading ? (
                             <div className="text-center py-12 text-gray-500">Loading Products...</div>
                         ) : (
-                            <SyncedProductsList products={products} onProductClick={(product) => { console.log("Mock click handler: ", product) }} />
+                            <SyncedProductsList 
+                                products={products} 
+                                onProductClick={(product) => { console.log("Mock click handler: ", product) }}
+                              
+                            />
                         )}
                     </div>
 

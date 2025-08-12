@@ -1,11 +1,39 @@
+
 import { Product } from "@/types/syncedProducts";
 
 interface Props {
     product: Product;
     onClick: (product: Product) => void;
+
 }
 
+async function handleSyncNow(product: Product) {
+    try{
+        const response = await fetch("/api/sync-product", {
+            method: "POST",
+            headers:{ "Content-Type": "application/json" },
+            body: JSON.stringify({
+                shopifyProductID: product.external_id,
+                edmTemplateId: product.edmTemplateId, // not sure  pa to
+                printfulProductId: product.printfulId // not sure  pa to
+            }),
+        });
+
+        const data = await response.json();
+        if(response.ok) {
+            console.log("Product synced successfully:", data);
+        }
+        else{
+            console.error("Error syncing product:", data);
+        }
+    }
+    catch (error) {
+        console.error("Network Error:", error);
+    }   
+}
 export default function ProductCard({ product, onClick }: Props) {
+    const isSynced = product.synced === product.variants;
+    console.log(isSynced, product.synced, product.variants);
     return (
         <li
             key={product.id}
@@ -20,10 +48,7 @@ export default function ProductCard({ product, onClick }: Props) {
                     <div>
                         <p className="text-sm font-medium text-indigo-600 truncate">{product.name}</p>
                         <p className="text-sm text-gray-500">Product ID: {product.external_id}</p>
-                        <div className="flex gap-2">
-                            <p className="text-sm text-gray-500 bg-gray-200 py-0.5 px-2 rounded-2xl">{product.synced ? "Synced" : "Not Synced"}</p>
-                            <p className="text-sm text-gray-500 bg-gray-200 py-0.5 px-2 rounded-2xl">{product.is_ignored ? "Ignored" : "Not Ignored"}</p>
-                        </div>
+                    
                     </div>
                 </div>
 
@@ -31,28 +56,18 @@ export default function ProductCard({ product, onClick }: Props) {
 
                     <div className="flex-shrink-0 text-sm text-gray-500 flex flex-col items-end gap-2">
                         <span>{product.variants} variants</span>
-                        {product.synced ? (
-                            <button
-                                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
-                                onClick={(e) => {
-                                    e.stopPropagation(); 
-                                    //  unsync handler 
-                                    console.log("Unsyncing product:", product.id);
-                                }}
-                            >
-                                Unsync
-                            </button>
-                        ) : (
+                        {!isSynced ? (
                             <button
                                 className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                     e.stopPropagation();
-                                    // sync handler
-                                    console.log("Syncing product:", product.id);
+                                    await handleSyncNow(product);
                                 }}
                             >
-                                Sync
+                                Sync Now
                             </button>
+                        ) : (
+                            <p className="text-sm text-gray-500 bg-gray-200 py-0.5 px-2 rounded-2xl">Synced</p>
                         )}
                     </div>
 
