@@ -131,6 +131,9 @@ async function createShopifyProduct(
 
   const variables = {
     product: {
+      collectionsToJoin: [
+        "gid://shopify/Collection/490639720752", // Default "Home Page" collection
+      ],
       title: productData.title,
       descriptionHtml: productData.description,
       vendor: "Customized Girl EDM",
