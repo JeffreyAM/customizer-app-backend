@@ -3,6 +3,7 @@ import { PrintfulProductResponse, PrintfulProductSyncResponse, ShopifyProductRes
 import axios from "axios";
 import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
+import { GraphQLClientResponse } from "@shopify/shopify-api";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
@@ -97,9 +98,10 @@ async function fetchAllVariants(
   let hasNextPage = true;
 
   while (hasNextPage) {
-    const shopifyProductResponse = await client.request<ShopifyProductResponse>(GET_PRODUCT, {
-      variables: { ownerId: shopifyProductID, variantsAfter: cursor },
-    });
+    const shopifyProductResponse: GraphQLClientResponse<ShopifyProductResponse> =
+      await client.request<ShopifyProductResponse>(GET_PRODUCT, {
+        variables: { ownerId: shopifyProductID, variantsAfter: cursor },
+      });
 
     if (!shopifyProductResponse.data?.product) {
       throw new Error("Shopify product response data is undefined");
