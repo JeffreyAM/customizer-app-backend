@@ -32,11 +32,18 @@ async function handleSyncNow(product: PrintfulProductSync) {
   }
 }
 export default function ProductCard({ product, printfulSyncedProducts, onClick }: Props) {
-  const cleanShopifyProductID = cleanShopifyId(product.id);
-  const syncedProduct = printfulSyncedProducts.find((p) => p.external_id === cleanShopifyProductID);
+  const syncedProduct = printfulSyncedProducts.find((p) => p.external_id === product.id);
 
   const isSynced =
     syncedProduct?.synced === syncedProduct?.variants && syncedProduct?.variants === product.variantsCount.count;
+
+  console.log("----------------------------------------");
+  console.log(syncedProduct);
+
+  console.log(syncedProduct?.synced);
+  console.log(syncedProduct?.variants);
+  console.log(product.variantsCount.count);
+
   return (
     <li className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors">
       <div className="flex items-center justify-between">
@@ -48,14 +55,19 @@ export default function ProductCard({ product, printfulSyncedProducts, onClick }
           />
           <div>
             <p className="text-sm font-medium text-indigo-600 truncate">{product.title}</p>
-            <p className="text-sm text-gray-500">Product ID: {cleanShopifyProductID}</p>
+            <p className="text-sm text-gray-500">Shopify Product ID: {cleanShopifyId(product.id)}</p>
+            <p className="text-sm text-gray-500">Printful Product ID: {syncedProduct?.id || "-"}</p>
           </div>
         </div>
 
         <div className="flex-shrink-0 text-sm text-gray-500">
           <div className="flex-shrink-0 text-sm text-gray-500 flex flex-col items-end gap-2">
             {/* <span>{product.variants} variants</span> */}
-            <p className="text-sm text-gray-500 bg-gray-200 py-0.5 px-2 rounded-2xl">
+            <p
+              className={`text-sm py-0.5 px-2 rounded-xl ${
+                isSynced ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"
+              }`}
+            >
               {isSynced ? "Synced" : "Unsynced"}
             </p>
           </div>

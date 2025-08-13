@@ -168,11 +168,9 @@ function buildSyncPayload(
   edmTemplateId: string,
   mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
 ) {
-  const id = shopifyProduct.id.split("/").pop();
-
   return {
     sync_product: {
-      external_id: id,
+      external_id: shopifyProduct.id,
       name: shopifyProduct.title,
       thumbnail: shopifyProduct.media?.nodes?.[0]?.preview?.image?.url || "",
       is_ignored: false,
