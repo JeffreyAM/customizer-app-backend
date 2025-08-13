@@ -36,6 +36,7 @@ export default function TemplateModal({
     complete: false,
     local: false,
     mockup: false,
+    mockupImages: false,
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
@@ -187,14 +188,9 @@ export default function TemplateModal({
 
     setCreateShopifyProductLoading(true);
     try {
-      // Add mockup url and extra images
-      const mockImages = mockupResult.mockups
-        .map((mockup: any) => [mockup.mockup_url, ...(mockup.extra?.map((img: any) => img.url) || [])])
-        .flat();
-
       const payload = {
         product_id: completeTemplateData?.result?.product_id,
-        images: mockImages,
+        images: getMockupImages(),
         edmTemplateId: completeTemplateData?.result?.id,
         availableVariantIds: completeTemplateData?.result?.available_variant_ids || [],
       };
@@ -221,6 +217,18 @@ export default function TemplateModal({
       toast.error(`Error creating Shopify product: ${error.message}`);
       setCreateShopifyProductLoading(false);
     }
+  };
+
+  const getMockupImages = () => {
+    if (!mockupResult) return [];
+    return [
+      ...new Set(
+        mockupResult.mockups.flatMap((mockup: any) => [
+          mockup.mockup_url,
+          ...(mockup.extra?.map((img: any) => img.url) || []),
+        ])
+      ),
+    ];
   };
 
   const onCloseModal = () => {
@@ -416,6 +424,30 @@ export default function TemplateModal({
                         <pre className="bg-white border rounded-md p-3 text-xs text-gray-700 max-h-64 overflow-auto">
                           {JSON.stringify(mockupResult, null, 2)}
                         </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Mockup Result Images Accordion */}
+                {mockupResult && (
+                  <div>
+                    <button
+                      onClick={() => toggleSection("mockupImages")}
+                      className="w-full text-left flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                    >
+                      <h5 className="text-sm font-medium text-gray-900">Mockup Result Images</h5>
+                      <span className="text-gray-500">{openSections.mockupImages ? "−" : "+"}</span>
+                    </button>
+                    {openSections.mockupImages && (
+                      <div className="mt-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          {getMockupImages().map((imageUrl, index) => (
+                            <div key={index} className="border rounded-lg overflow-hidden">
+                              <img src={imageUrl} alt={`Mockup ${index}`} className="w-full h-48 object-cover" />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
