@@ -220,7 +220,7 @@ export async function GET(req: NextRequest) {
 
     const query = GET_PRODUCTS;
     const response = await client.request<ShopifyProductsResponse>(query);
-    return NextResponse.json({ products: response?.data?.products }, { status: 200 });
+    return NextResponse.json({ products: response?.data?.products?.nodes }, { status: 200 });
   } catch (error) {
     console.error("Error fetching products:", error);
     return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });

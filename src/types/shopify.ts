@@ -82,7 +82,7 @@ export type ShopifyProductResponse = {
     variants: ShopifyProductVariantsConnection;
     totalVariants: number;
   };
-}; 
+};
 
 export type ShopifyProductsResponse = {
   products: {

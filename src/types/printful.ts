@@ -80,3 +80,15 @@ export type PrintfulProductSyncResponse = {
     is_ignored: boolean;
   };
 };
+
+export interface PrintfulProductSync {
+  id: string;
+  external_id: string;
+  name: string;
+  variants: number;
+  synced: number;
+  thumbnail_url: string;
+  is_ignored: boolean;
+  edmTemplateId?: string;
+  printfulId?: string;
+}

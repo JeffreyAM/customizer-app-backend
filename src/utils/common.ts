@@ -16,6 +16,11 @@ export const capitalize = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// clean shopify id return only id
+export const cleanShopifyId = (id: string) => {
+  return id.replace("gid://shopify/Product/", "");
+}
+
 
 export const fetchUserDetails = async (userId: string, setUser: Function) => {
   try {
