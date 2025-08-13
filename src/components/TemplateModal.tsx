@@ -219,13 +219,14 @@ export default function TemplateModal({
     }
   };
 
-  const getMockupImages = () => {
+  const getMockupImages = (): string[] => {
     if (!mockupResult) return [];
+
     return [
-      ...new Set(
+      ...new Set<string>(
         mockupResult.mockups.flatMap((mockup: any) => [
-          mockup.mockup_url,
-          ...(mockup.extra?.map((img: any) => img.url) || []),
+          mockup.mockup_url as string,
+          ...(mockup.extra?.map((img: any) => img.url as string) || []),
         ])
       ),
     ];
