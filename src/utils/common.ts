@@ -10,6 +10,13 @@ export const formatDate = (dateString: string) => {
   });
 };
 
+
+// capitalizes a string
+export const capitalize = (str: string) => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
 export const fetchUserDetails = async (userId: string, setUser: Function) => {
   try {
     const response = await fetch(`/api/users/${userId}`);

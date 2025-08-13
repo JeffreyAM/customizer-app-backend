@@ -1,24 +1,13 @@
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
-import { supabase } from "@/lib/supabase";
 import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
 import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
 import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
-import { GET_PRODUCT } from "@/queries/shopify/getProduct";
-import {
-  PrintfulProductResponse,
-  PrintfulProductSyncResponse,
-  ShopifyProductCreateResponse,
-  ShopifyProductResponse,
-} from "@/types";
+import { PrintfulProductResponse, ShopifyProductCreateResponse } from "@/types";
+import { capitalize } from "@/utils/common";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
-
-// capitalizes a string
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
 
 // split array to chunks
 function chunkArray<T>(arr: T[], size: number): T[][] {
