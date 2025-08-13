@@ -18,16 +18,16 @@ export async function syncShopifyProductToPrintful(
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   try {
-    const query = GET_PRODUCT;
-    const shopifyProductResponse = await client.request<ShopifyProductResponse>(query, {
+    const shopifyProductResponse = await client.request<ShopifyProductResponse>(GET_PRODUCT, {
       variables: { ownerId: shopifyProductID },
     });
 
-    if (!shopifyProductResponse.data) {
+    if (!shopifyProductResponse.data?.product) {
       throw new Error("Shopify product response data is undefined");
     }
 
     const shopifyProduct = shopifyProductResponse.data.product;
+    shopifyProduct.variants.nodes = await fetchAllVariants(client, shopifyProductID); // Fetch all variants
 
     const { data: templates, error: templatesError } = await supabase
       .from("templates")
@@ -86,6 +86,33 @@ export async function syncShopifyProductToPrintful(
       throw new Error("Unexpected error: " + JSON.stringify(error));
     }
   }
+}
+
+async function fetchAllVariants(
+  client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
+  shopifyProductID: string
+) {
+  let allVariants: any[] = [];
+  let cursor: string | null = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const shopifyProductResponse = await client.request<ShopifyProductResponse>(GET_PRODUCT, {
+      variables: { ownerId: shopifyProductID, variantsAfter: cursor },
+    });
+
+    if (!shopifyProductResponse.data?.product) {
+      throw new Error("Shopify product response data is undefined");
+    }
+
+    const variants: ShopifyProductResponse["product"]["variants"] = shopifyProductResponse.data.product.variants;
+    allVariants.push(...variants.nodes);
+
+    hasNextPage = variants.pageInfo.hasNextPage;
+    cursor = variants.pageInfo.endCursor;
+  }
+
+  return allVariants;
 }
 
 function getPrintfulVariantIdFromShopifyVariantMetaFields(

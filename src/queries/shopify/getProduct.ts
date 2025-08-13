@@ -1,5 +1,5 @@
 export const GET_PRODUCT = `
-  query ProductMetafields($ownerId: ID!) {
+  query ProductMetafields($ownerId: ID!, $variantsAfter: String) {
     product(id: $ownerId) {
       id
       title
@@ -9,12 +9,19 @@ export const GET_PRODUCT = `
           key
           value 
         }
-      } 
-      variants(first: 10) {
+      }
+      variantsCount{
+        count
+      }
+      variants(first: 100, after: $variantsAfter) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes { 
           id
           title
-          price 
+          price
           barcode
           selectedOptions {
             name
@@ -28,7 +35,10 @@ export const GET_PRODUCT = `
               value
             }
           }
-        } 
+        }
+      }
+      mediaCount{
+        count
       }
       media(first: 10) {
         nodes {

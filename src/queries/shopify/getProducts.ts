@@ -10,7 +10,10 @@ export const GET_PRODUCTS = `
             key
             value 
           }
-        } 
+        }
+        variantsCount{
+          count
+        }
         variants(first: 10) {
           nodes { 
             id
@@ -30,6 +33,9 @@ export const GET_PRODUCTS = `
               }
             }
           } 
+        }
+        mediaCount{
+          count
         }
         media(first: 10) {
           nodes {
