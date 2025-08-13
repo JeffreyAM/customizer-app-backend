@@ -26,7 +26,7 @@ export type ShopifyProductBase = {
 export type ShopifyProductDetailed = ShopifyProductBase & {
   description: string;
   vendor: string;
-  variants: ShopifyProductVariant[] | ShopifyProductVariantsConnection;
+  variants: ShopifyProductVariantsConnection;
 };
 
 /**
@@ -35,7 +35,6 @@ export type ShopifyProductDetailed = ShopifyProductBase & {
 export type ShopifyProductWithCounts = ShopifyProductDetailed & {
   mediaCount: { count: number };
   variantsCount: { count: number };
-  totalVariants: number;
 };
 
 /**
@@ -45,7 +44,6 @@ export type ShopifyProductCreateResponse = {
   productCreate: {
     product: Omit<ShopifyProductBase, "variants"> & {
       variants: ShopifyProductVariantsConnection;
-      totalVariants: number;
     };
     userErrors: UserError[];
   };
@@ -73,5 +71,19 @@ export type ShopifyProductsResponse = {
         mediaCount: { count: number };
       }
     >;
+  };
+};
+
+/**
+ * Response type for publishing a product
+ */
+export type ShopifyProductPublishResponse = {
+  publishablePublish: {
+    shop: {
+      id: string;
+      name: string;
+      email: string;
+    };
+    userErrors: UserError[];
   };
 };

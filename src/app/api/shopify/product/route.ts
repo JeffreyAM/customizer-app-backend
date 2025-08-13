@@ -2,10 +2,16 @@ import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
 import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
 import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
+import { PRODUCT_PUBLISH } from "@/mutations/shopify/productPublish";
 import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
 import { GET_PRODUCTS } from "@/queries/shopify/getProducts";
-import { PrintfulProductResponse, ShopifyProductCreateResponse, ShopifyProductsResponse } from "@/types";
+import {
+  PrintfulProductResponse,
+  ShopifyProductCreateResponse,
+  ShopifyProductPublishResponse,
+  ShopifyProductsResponse,
+} from "@/types";
 import { capitalize } from "@/utils/common";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
@@ -136,7 +142,24 @@ async function createShopifyProduct(
   };
 
   const response = await client.request<ShopifyProductCreateResponse>(mutation, { variables });
+
   return response.data?.productCreate;
+}
+
+async function publishShopifyProduct(productID: string) {
+  const shopify = getShopify();
+  const session = await getSession();
+  const client = new shopify.clients.Graphql({ session });
+
+  const mutation = PRODUCT_PUBLISH;
+
+  const variables = {
+    collectionId: productID,
+    publicationId: "gid://shopify/Publication/269868892464",
+  };
+
+  const response = await client.request<ShopifyProductPublishResponse>(mutation, { variables });
+  return response.data?.publishablePublish;
 }
 
 export async function POST(req: NextRequest) {
@@ -195,6 +218,11 @@ export async function POST(req: NextRequest) {
     if (shopifyVariants.length > 1) {
       const variantsToCreate = shopifyVariants.slice(1); // Skip the first variant as it's already created
       await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
+    }
+
+    // Publish the product to default "Online Store" if created successfully
+    if (shopifyProduct.product.id) {
+      await publishShopifyProduct(shopifyProduct.product.id);
     }
 
     // Run printful product sync in background
