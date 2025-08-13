@@ -4,7 +4,8 @@ import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
 import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
 import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
-import { PrintfulProductResponse, ShopifyProductCreateResponse } from "@/types";
+import { GET_PRODUCTS } from "@/queries/shopify/getProducts";
+import { PrintfulProductResponse, ShopifyProductCreateResponse, ShopifyProductsResponse } from "@/types";
 import { capitalize } from "@/utils/common";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
@@ -209,4 +210,19 @@ export async function POST(req: NextRequest) {
     console.error("Error creating product:", error);
     return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
   }
-} 
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const shopify = getShopify();
+    const session = await getSession();
+    const client = new shopify.clients.Graphql({ session });
+
+    const query = GET_PRODUCTS;
+    const response = await client.request<ShopifyProductsResponse>(query);
+    return NextResponse.json({ products: response?.data?.products }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
+  }
+}

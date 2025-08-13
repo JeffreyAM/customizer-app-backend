@@ -83,3 +83,51 @@ export type ShopifyProductResponse = {
     totalVariants: number;
   };
 }; 
+
+export type ShopifyProductsResponse = {
+  products: {
+    nodes: Array<{
+      id: string;
+      title: string;
+      metafields: {
+        nodes: Array<{
+          namespace: string;
+          key: string;
+          value: string;
+        }>;
+      };
+      variants: {
+        nodes: Array<{
+          id: string;
+          title: string;
+          price: string;
+          barcode: string | null;
+          selectedOptions: Array<{
+            name: string;
+            value: string;
+          }>;
+          sku: string | null;
+          metafields: {
+            nodes: Array<{
+              id: string;
+              key: string;
+              value: string;
+            }>;
+          };
+        }>;
+      };
+      media: {
+        nodes: Array<{
+          id: string;
+          alt: string;
+          preview: {
+            image: {
+              id: string;
+              url: string;
+            };
+          };
+        }>;
+      };
+    }>;
+  };
+};
