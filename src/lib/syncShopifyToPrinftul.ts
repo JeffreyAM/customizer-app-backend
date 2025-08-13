@@ -132,18 +132,26 @@ function getPrintfulVariantIdFromShopifyVariantMetaFields(
 
 function getPrintFilesForVariant(
   variantId: number | null,
-  mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
+  mockupResults?: Array<{
+    printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
+  }>
 ) {
   if (!variantId || !mockupResults?.[0]?.printfiles) return [];
+
   return mockupResults[0].printfiles
     .filter((file) => file.variant_ids.includes(variantId))
-    .map((file) => ({ url: file.url }));
+    .map((file) => ({
+      type: file.placement,
+      url: file.url,
+    }));
 }
 
 function mapSyncVariant(
   shopifyVariant: ShopifyProductResponse["product"]["variants"]["nodes"][number],
   printfulVariants: PrintfulProductResponse["result"]["variants"],
-  mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
+  mockupResults?: Array<{
+    printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
+  }>
 ) {
   const variantId = getPrintfulVariantIdFromShopifyVariantMetaFields(printfulVariants, shopifyVariant.metafields.nodes);
 
@@ -166,7 +174,9 @@ function buildSyncPayload(
   shopifyProduct: ShopifyProductResponse["product"],
   printfulVariants: PrintfulProductResponse["result"]["variants"],
   edmTemplateId: string,
-  mockupResults?: Array<{ printfiles: Array<{ url: string; variant_ids: number[] }> }>
+  mockupResults?: Array<{
+    printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
+  }>
 ) {
   return {
     sync_product: {
