@@ -2,6 +2,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+/**
+ * @openapi
+ * /api/mockup-result:
+ *   get:
+ *     summary: Get mockup results
+ *     tags: ["Internal"]
+ *     parameters:
+ *       - in: query
+ *         name: task_key
+ *         required: false
+ *         description: The task key to filter mockup results
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A list of mockup results
+ *       404:
+ *         description: Not found
+ */
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const task_key = searchParams.get("task_key");

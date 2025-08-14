@@ -7,6 +7,50 @@ const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 
 const POLLING_INTERVAL = 5000; // ms
 
+/**
+ * @openapi
+ * /api/printful/mockup:
+ *   post:
+ *     summary: Create a new Printful mockup
+ *     tags: ["External/Printful"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               catalog_product_id:
+ *                 type: string
+ *               variant_ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               mockup_style_ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               format:
+ *                 type: string
+ *               width:
+ *                 type: integer
+ *               template_id:
+ *                 type: string
+ *               product_template_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: The created mockup
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

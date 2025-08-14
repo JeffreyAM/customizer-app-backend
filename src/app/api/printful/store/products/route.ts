@@ -6,6 +6,34 @@ import axios from "axios";
 import { PrintfulProductResponse } from "@/types";
 import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
 
+/**
+ * @openapi
+ * /api/printful/store/products:
+ *   post:
+ *     summary: Create a new Printful product
+ *     tags: ["External/Printful"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               shopifyProductID:
+ *                 type: string
+ *               edmTemplateId:
+ *                 type: string
+ *               printfulProductId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: The created product
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

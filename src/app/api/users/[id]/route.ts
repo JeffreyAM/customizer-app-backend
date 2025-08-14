@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+/**
+ * @openapi
+ * /api/users/{id}:
+ *   get:
+ *     summary: Get a user by ID who has created an EDM design template
+ *     tags: ["Internal"]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User found
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

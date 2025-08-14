@@ -4,6 +4,26 @@ import { supabase } from "@/lib/supabase";
 // /api/mockup-result/[id]/route.ts
 type RouteContext = { params: Promise<{ key: string }> };
 
+/**
+ * @openapi
+ * /api/mockup-result/{key}:
+ *   get:
+ *     summary: Get mockup result by key
+ *     tags: ["Internal"]
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         description: The key of the mockup result
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The mockup result
+ *       404:
+ *         description: Not found
+ */
+
 export async function GET(req: NextRequest, context: RouteContext) {
   const { key } = await context.params;
 

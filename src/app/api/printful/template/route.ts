@@ -5,6 +5,39 @@ import { supabase } from "@/lib/supabase";
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL; 
 const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 
+/**
+ * @openapi
+ * /api/printful/template:
+ *   post:
+ *     summary: Create a new Printful template
+ *     tags: ["External/Printful"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               templateId:
+ *                 type: string
+ *               user:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *               productId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: The created template
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

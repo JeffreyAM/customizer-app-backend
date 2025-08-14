@@ -9,6 +9,89 @@ type RouteContext = {
   params: Promise<{ path: string[] }>;
 };
 
+/**
+ * @openapi
+ * /api/printful/{path}:
+ *   get:
+ *     summary: Proxy GET request to Printful
+ *     tags: ["External/Printful Proxy"]
+ *     parameters:
+ *       - in: path
+ *         name: path
+ *         required: true
+ *         description: Printful API subpath, e.g. `orders` or `products/123`
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: any
+ *         required: false
+ *         description: Any query parameters supported by Printful
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successful Printful response
+ *       500:
+ *         description: Proxy error
+ *   post:
+ *     summary: Proxy POST request to Printful
+ *     tags: ["External/Printful Proxy"]
+ *     parameters:
+ *       - in: path
+ *         name: path
+ *         required: true
+ *         description: Printful API subpath
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Successful Printful response
+ *       500:
+ *         description: Proxy error
+ *   put:
+ *     summary: Proxy PUT request to Printful
+ *     tags: ["External/Printful Proxy"]
+ *     parameters:
+ *       - in: path
+ *         name: path
+ *         required: true
+ *         description: Printful API subpath
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Successful Printful response
+ *       500:
+ *         description: Proxy error
+ *   delete:
+ *     summary: Proxy DELETE request to Printful
+ *     tags: ["External/Printful Proxy"]
+ *     parameters:
+ *       - in: path
+ *         name: path
+ *         required: true
+ *         description: Printful API subpath
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successful Printful response
+ *       500:
+ *         description: Proxy error
+ */
+
 export async function GET(req: NextRequest, context: RouteContext) {
   const params = await context.params;
   return proxyRequest(req, params.path.join("/"), "GET");

@@ -165,6 +165,70 @@ async function publishShopifyProduct(productID: string) {
   return response.data?.publishablePublish;
 }
 
+/**
+ * @openapi
+ * /api/shopify/product:
+ *   get:
+ *     summary: Get a Shopify product
+ *     tags: ["External/Shopify"]
+ *     parameters:
+ *       - in: query
+ *         name: product_id
+ *         required: true
+ *         description: The ID of the product to retrieve
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Product retrieved successfully
+ *       404:
+ *         description: Product not found
+ *   post:
+ *     summary: Create a new Shopify product
+ *     tags: ["External/Shopify"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               product_id:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               edmTemplateId:
+ *                 type: string
+ *               availableVariantIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Product created successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+
+export async function GET(req: NextRequest) {
+  try {
+    const shopify = getShopify();
+    const session = await getSession();
+    const client = new shopify.clients.Graphql({ session });
+
+    const query = GET_PRODUCTS;
+    const response = await client.request<ShopifyProductsResponse>(query);
+    return NextResponse.json({ products: response?.data?.products?.nodes }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { product_id, images, edmTemplateId, availableVariantIds } = body;
@@ -239,21 +303,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ productCreate: shopifyProduct }, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
-    return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const shopify = getShopify();
-    const session = await getSession();
-    const client = new shopify.clients.Graphql({ session });
-
-    const query = GET_PRODUCTS;
-    const response = await client.request<ShopifyProductsResponse>(query);
-    return NextResponse.json({ products: response?.data?.products?.nodes }, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching products:", error);
     return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
   }
 }

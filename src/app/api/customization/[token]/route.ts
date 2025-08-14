@@ -3,6 +3,54 @@ import { NextRequest, NextResponse } from "next/server";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
+/**
+ * @openapi
+ * /api/customization/{token}:
+ *   get:
+ *     summary: Get customization by token
+ *     tags: ["Internal"]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         description: The token of the customization
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The customization data
+ *       404:
+ *         description: Not found
+ * /api/customization:
+ *   post:
+ *     summary: Create or update a customization
+ *     tags: ["Internal"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               color:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *               font:
+ *                 type: string
+ *               shopify_product_id:
+ *                 type: string
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: The customization was created or updated successfully
+ *       400:
+ *         description: Missing fields
+ *       500:
+ *         description: Server error 
+ */
+
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const segments = url.pathname.split("/");

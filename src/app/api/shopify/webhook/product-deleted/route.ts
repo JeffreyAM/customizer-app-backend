@@ -16,6 +16,21 @@ function verifyShopifyWebhook(rawBody: string, hmacHeader: string | null): boole
   }
 }
 
+/**
+ * @openapi
+ * /api/shopify/webhook/product-deleted:
+ *   post:
+ *     summary: Handle Shopify product deleted webhook
+ *     tags: ["External/Shopify/Webhook"]
+ *     responses:
+ *       200:
+ *         description: Successfully processed the webhook
+ *       401:
+ *         description: Unauthorized - Invalid signature
+ *       500:
+ *         description: Internal server error
+ */
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const hmacHeader = req.headers.get("x-shopify-hmac-sha256");

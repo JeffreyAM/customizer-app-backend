@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+/**
+ * @openapi
+ * /api/templates:
+ *   get:
+ *     summary: Get a list of templates
+ *     tags: ["Internal"]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: A list of templates
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

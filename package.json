@@ -16,13 +16,17 @@
     "node-schedule": "^2.1.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-hot-toast": "^2.5.2"
+    "react-hot-toast": "^2.5.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-dist": "^5.27.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-dist": "^3.30.6",
     "supabase": "^2.33.7",
     "tailwindcss": "^4",
     "typescript": "^5"
