@@ -9,7 +9,6 @@ export default function SwaggerPage() {
       dom_id: "#swagger-container",
       url: "/api/swagger",
       docExpansion: "list", // collapsible accordion by default
-      defaultModelsExpandDepth: -1, // hides schemas by default
       showCommonExtensions: true,
       showExtensions: true,
     });

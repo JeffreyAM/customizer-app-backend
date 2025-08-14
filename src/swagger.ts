@@ -1,6 +1,6 @@
 import swaggerJsdoc, { OAS3Definition, OAS3Options } from "swagger-jsdoc";
 
-const definition: OAS3Definition = {
+export const definition: OAS3Definition = {
   openapi: "3.0.0",
   info: {
     title: "EDM, Shopify & Printful Customizer API",
@@ -35,4 +35,6 @@ const options: OAS3Options = {
   apis: ["src/app/api/**/*.ts"],
 };
 
-export const swaggerSpec = swaggerJsdoc(options);
+export function generateSwaggerSpec() {
+  return swaggerJsdoc(options);
+}

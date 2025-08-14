@@ -1,0 +1,672 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "EDM, Shopify & Printful Customizer API",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Internal",
+      "description": "Internal endpoints for customization and data management."
+    },
+    {
+      "name": "External/Shopify",
+      "description": "Endpoints for interacting with Shopify store data and orders that are modified for our use."
+    },
+    {
+      "name": "External/Printful",
+      "description": "Endpoints for interacting with Printful's API and services that are modified for our use."
+    },
+    {
+      "name": "External/Printful Proxy",
+      "description": "Routes that forward requests to the Printful API, maintaining authentication and store context."
+    },
+    {
+      "name": "External/Shopify/Webhook",
+      "description": "Endpoints for interacting with Shopify store webhooks."
+    }
+  ],
+  "paths": {
+    "/api/customization/{token}": {
+      "get": {
+        "summary": "Get customization by token",
+        "tags": [
+          "Internal"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "description": "The token of the customization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The customization data"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/customization": {
+      "post": {
+        "summary": "Create or update a customization",
+        "tags": [
+          "Internal"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "color": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "font": {
+                    "type": "string"
+                  },
+                  "shopify_product_id": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The customization was created or updated successfully"
+          },
+          "400": {
+            "description": "Missing fields"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/mockup-result/{key}": {
+      "get": {
+        "summary": "Get mockup result by key",
+        "tags": [
+          "Internal"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "description": "The key of the mockup result",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The mockup result"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/mockup-result": {
+      "get": {
+        "summary": "Get mockup results",
+        "tags": [
+          "Internal"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "task_key",
+            "required": false,
+            "description": "The task key to filter mockup results",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of mockup results"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/mockup-task/{key}": {
+      "get": {
+        "summary": "Get mockup task by key",
+        "tags": [
+          "Internal"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "description": "The key of the mockup task",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The mockup task"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/mockup-task": {
+      "get": {
+        "summary": "Get mockup tasks",
+        "tags": [
+          "Internal"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "template_id",
+            "required": false,
+            "description": "The template ID to filter mockup tasks",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "description": "The status to filter mockup tasks",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of mockup tasks"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/printful/{path}": {
+      "get": {
+        "summary": "Proxy GET request to Printful",
+        "tags": [
+          "External/Printful Proxy"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "description": "Printful API subpath, e.g. `orders` or `products/123`",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "any",
+            "required": false,
+            "description": "Any query parameters supported by Printful",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Printful response"
+          },
+          "500": {
+            "description": "Proxy error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Proxy POST request to Printful",
+        "tags": [
+          "External/Printful Proxy"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "description": "Printful API subpath",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Printful response"
+          },
+          "500": {
+            "description": "Proxy error"
+          }
+        }
+      },
+      "put": {
+        "summary": "Proxy PUT request to Printful",
+        "tags": [
+          "External/Printful Proxy"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "description": "Printful API subpath",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Printful response"
+          },
+          "500": {
+            "description": "Proxy error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Proxy DELETE request to Printful",
+        "tags": [
+          "External/Printful Proxy"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "description": "Printful API subpath",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Printful response"
+          },
+          "500": {
+            "description": "Proxy error"
+          }
+        }
+      }
+    },
+    "/api/printful/mockup": {
+      "post": {
+        "summary": "Create a new Printful mockup",
+        "tags": [
+          "External/Printful"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "catalog_product_id": {
+                    "type": "string"
+                  },
+                  "variant_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mockup_style_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "format": {
+                    "type": "string"
+                  },
+                  "width": {
+                    "type": "integer"
+                  },
+                  "template_id": {
+                    "type": "string"
+                  },
+                  "product_template_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created mockup"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/printful/store/products": {
+      "post": {
+        "summary": "Create a new Printful product",
+        "tags": [
+          "External/Printful"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shopifyProductID": {
+                    "type": "string"
+                  },
+                  "edmTemplateId": {
+                    "type": "string"
+                  },
+                  "printfulProductId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created product"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/printful/template": {
+      "post": {
+        "summary": "Create a new Printful template",
+        "tags": [
+          "External/Printful"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateId": {
+                    "type": "string"
+                  },
+                  "user": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "productId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created template"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/shopify/product": {
+      "get": {
+        "summary": "Get a Shopify product",
+        "tags": [
+          "External/Shopify"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product_id",
+            "required": true,
+            "description": "The ID of the product to retrieve",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product retrieved successfully"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new Shopify product",
+        "tags": [
+          "External/Shopify"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": {
+                    "type": "string"
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "edmTemplateId": {
+                    "type": "string"
+                  },
+                  "availableVariantIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/shopify/webhook/product-deleted": {
+      "post": {
+        "summary": "Handle Shopify product deleted webhook",
+        "tags": [
+          "External/Shopify/Webhook"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully processed the webhook"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid signature"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/templates": {
+      "get": {
+        "summary": "Get a list of templates",
+        "tags": [
+          "Internal"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "userId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of templates"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "summary": "Get a user by ID who has created an EDM design template",
+        "tags": [
+          "Internal"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User found"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {}
+}
