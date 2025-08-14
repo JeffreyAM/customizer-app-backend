@@ -292,8 +292,8 @@ export async function POST(req: NextRequest) {
       await publishShopifyProduct(shopifyProduct.product.id);
     }
 
-    // Run printful product sync in background
-    syncShopifyProductToPrintful(
+    // Run printful product
+    await syncShopifyProductToPrintful(
       client,
       edmTemplateId,
       availablePrintfulProductVariants,
