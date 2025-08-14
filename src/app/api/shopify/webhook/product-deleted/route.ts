@@ -51,16 +51,7 @@ export async function POST(req: NextRequest) {
   const productId = payload.id;
 
   // Call your other API
-  try {
-    const syncProductDeleted = await axios.delete(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/store/products/@${productId}`
-    );
-
-    if (!syncProductDeleted.data) throw new Error(`Internal API returned ${syncProductDeleted.status}`);
-  } catch (err) {
-    console.error("Failed to call internal API", err);
-    return NextResponse.json({ error: "Internal API call failed" }, { status: 500 });
-  }
+  await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/store/products/@${productId}`); 
 
   return NextResponse.json({ status: "ok" }, { status: 200 });
 }
