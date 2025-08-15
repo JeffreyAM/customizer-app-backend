@@ -134,10 +134,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const shopifyImgs = imageUrl || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
+
     const createProduct = await createShopifyProduct(
       'https://customizer-app-backend.vercel.app/api/shopify/product',
       productId,
-      [imageUrl],
+      [shopifyImgs],
       templateId,
       variantOptions || []
     );
