@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
         template: savedTemplate,
         printfulData: templateData,
         userId: userId, // Include the user ID in the response
-        shopifyProduct: createProduct.productCreate.product.id || createProduct,
+        shopifyProduct: createProduct.productCreate.product || createProduct,
       },
       {
         status: 200,
