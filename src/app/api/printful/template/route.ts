@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { supabase } from "@/lib/supabase"; 
+import { createShopifyProduct } from '@/helpers/create-product';
 
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL; 
 const STORE_ID = process.env.PRINTFUL_STORE_ID!;
@@ -54,32 +55,6 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.PRINTFUL_API_KEY || "xyD86qYWF2lZKRUdbOCfelfw8V4OX3Nd0zYnIipf";
 
-    /* Comment out the mockup generation step for now
-    const mockupGenResponse = await axios.request({
-      url: `${PRINTFUL_API_BASE}/mockup-generator/create-task/${productId}`,
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'X-PF-Store-Id': STORE_ID,
-      },
-      data: {
-        product_template_id: templateId
-      },
-      validateStatus: () => true,
-    });
-
-    if (mockupGenResponse.status !== 200) {
-      return NextResponse.json(
-        { error: 'Failed to create mockup from Printful', details: mockupGenResponse.data },
-        {
-          status: mockupGenResponse.status,
-          headers: {
-            'Access-Control-Allow-Origin': getAllowedOrigin(req),
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }*/
 
     // First, get basic template data
     const templateResponse = await axios.get(`${PRINTFUL_API_BASE}/product-templates/${templateId}`, {
@@ -159,12 +134,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const createProduct = await createShopifyProduct(
+      'https://customizer-app-backend.vercel.app/api/shopify/product',
+      productId,
+      [imageUrl],
+      templateId,
+      variantOptions || []
+    );
+
     return NextResponse.json(
       {
         success: true,
         template: savedTemplate,
         printfulData: templateData,
         userId: userId, // Include the user ID in the response
+        shopifyProduct: createProduct.productCreate.product.id || createProduct,
       },
       {
         status: 200,
