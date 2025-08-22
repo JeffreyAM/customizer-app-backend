@@ -13,6 +13,7 @@ import {
   ShopifyProductsResponse,
 } from "@/types";
 import { capitalize } from "@/utils/common";
+import { selPrice } from "@/utils/sellingPrice";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -68,7 +69,7 @@ function buildProductOptionsAndVariants(variants: any[]) {
 
     return {
       optionValues,
-      price: String(v.price || "0.00"),
+      price: String(selPrice(v.price) || "0.00"),
       barcode: v.id.toString(),
       metafields: [
         {
