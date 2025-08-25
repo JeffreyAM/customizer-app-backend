@@ -138,8 +138,12 @@ export async function POST(req: NextRequest) {
 
     if (!templateFromBackendResponse.ok) {
       const errorData = await templateFromBackendResponse.json();
-      console.error("Failed to fetch template:", errorData);
-      return;
+      return NextResponse.json(
+        { error: "Failed to create template", details: (errorData as Error).message },
+        {
+          status: 500,
+        }
+      );
     }
 
     const templateFromBackend = await templateFromBackendResponse.json();
