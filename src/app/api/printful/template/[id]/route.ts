@@ -1,8 +1,12 @@
 import { supabase } from "@/lib/supabase"; 
 import { NextRequest, NextResponse } from 'next/server';
+import type { NextApiRequest } from 'next';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const templateId = params.id;
+export async function GET(
+  req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const templateId = context.params.id;
 
   if (!templateId) {
     return NextResponse.json({ error: 'Missing template ID' }, { status: 400 });
