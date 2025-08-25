@@ -149,121 +149,117 @@ export async function POST(req: NextRequest) {
         (id: number) => typeof id === "number" && !isNaN(id)
       );
 
-      const placement = templateData.placements?.[0]?.placement || "front";
+  const placement = templateData.placements?.[0]?.placement || "front";
 
-      const files = [
-        {
-          placement,
-          image_url: templateFromBackend.template.image_url,
-          position: {
-            area_width: 1800,
-            area_height: 2400,
-            width: 1800,
-            height: 2400,
-            top: 0,
-            left: 0,
-          },
-        },
-      ];
+  const files = [
+    {
+      placement,
+      image_url: templateFromBackend.template.image_url,
+      position: {
+        area_width: 1800,
+        area_height: 2400,
+        width: 1800,
+        height: 2400,
+        top: 0,
+        left: 0,
+      },
+    },
+  ];
 
-      const createMockUpResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/printful/mockup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          template_id: templateFromBackend.template.id,
-          product_template_id: templateFromBackend.template.template_id,
-          catalog_product_id: productId,
-          variant_ids: variantIds,
-        }),
-      });
+  const createMockUpResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/printful/mockup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      template_id: templateFromBackend.template.id,
+      product_template_id: templateFromBackend.template.template_id,
+      catalog_product_id: productId,
+      variant_ids: variantIds,
+    }),
+  });
 
-      const createMockUp = await createMockUpResponse.json();
-      console.log(createMockUp);
+  // const createMockUp = await createMockUpResponse.json();
+  // console.log(createMockUp);
 
-      if (createMockUpResponse.ok && createMockUp.task) {
-        console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
-      } else {
-        return NextResponse.json(
-          {
-            error: "Failed to call internal template API",
-            details: createMockUp.error || "Unknown error",
-          },
-          { status: 500 }
-        );
-      }
+  // if (createMockUpResponse.ok && createMockUp.task) {
+  //   console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
+  // } else {
+  //   return NextResponse.json(
+  //     {
+  //       error: "Failed to call internal template API",
+  //       details: createMockUp.error || "Unknown error",
+  //     },
+  //     { status: 500 }
+  //   );
+  // }
 
-    const taskKey = createMockUp.task.task_key;
+  // const taskKey = createMockUp.task.task_key;
 
-    const taskStatus = await pollMockupTaskStatus(taskKey);
-    if(taskStatus != "completed"){
-      return NextResponse.json(
-        {
-          error: "Failed to Mockup Task",
-          details: "",
-        },
-        { status: 500 }
-      );
-    }
+  // const taskStatus = await pollMockupTaskStatus(taskKey);
+  // if(taskStatus != "completed"){
+  //   return NextResponse.json(
+  //     {
+  //       error: "Failed to Mockup Task",
+  //       details: "",
+  //     },
+  //     { status: 500 }
+  //   );
+  // }
 
-    const mockupResultResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/mockup-result/${taskKey}`);
+  // const mockupResultResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/mockup-result/${taskKey}`);
 
-    if (!mockupResultResponse.ok) {
-      return NextResponse.json(
-        {
-          error: "Failed to call internal template API",
-          details:  "Unknown error",
-        },
-        { status: 500 }
-      );
-    }
+  // if (!mockupResultResponse.ok) {
+  //   return NextResponse.json(
+  //     {
+  //       error: "Failed to call internal template API",
+  //       details:  "Unknown error",
+  //     },
+  //     { status: 500 }
+  //   );
+  // }
 
-    const mockupResult = (await mockupResultResponse.json()) as {
-      mockups: {
-        mockup_url: string;
-        extra?: { url: string }[];
-      }[];
-    };
+  // const mockupResult = (await mockupResultResponse.json()) as {
+  //   mockups: {
+  //     mockup_url: string;
+  //     extra?: { url: string }[];
+  //   }[];
+  // };
 
-    console.log(mockupResult);
+  // console.log(mockupResult);
 
-    // Safely extract image URLs
-    const getMockupImages = (): string[] => {
-      if (!mockupResult || !mockupResult.mockups) return [];
+  // // Safely extract image URLs
+  // const getMockupImages = (): string[] => {
+  //   if (!mockupResult || !mockupResult.mockups) return [];
 
-      return [
-        ...new Set(
-          mockupResult.mockups.flatMap((mockup) => [
-            mockup.mockup_url,
-            ...(mockup.extra?.map((img) => img.url) || []),
-          ])
-        ),
-      ];
-    };
+  //   return [
+  //     ...new Set(
+  //       mockupResult.mockups.flatMap((mockup) => [
+  //         mockup.mockup_url,
+  //         ...(mockup.extra?.map((img) => img.url) || []),
+  //       ])
+  //     ),
+  //   ];
+  // };
 
-    const shopifyImgs = getMockupImages();
-    // console.log("Mockup Images:", imageUrls);
+  // const shopifyImgs = getMockupImages();
 
+  // // const shopifyImgs = imageUrls || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
+  // console.log(shopifyImgs);
 
-// You can now return or use templateData as needed
-
-
-    // const shopifyImgs = imageUrls || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
-
-    const createProduct = await createShopifyProduct(
-      'https://customizer-app-backend.vercel.app/api/shopify/product',
-      productId,
-      shopifyImgs,
-      templateId,
-      variantOptions || []
-    );
+  //   const createProduct = await createShopifyProduct(
+  //     'https://customizer-app-backend.vercel.app/api/shopify/product',
+  //     productId,
+  //     shopifyImgs,
+  //     templateId,
+  //     variantOptions || []
+  //   );
 
     return NextResponse.json(
       {
         success: true,
         template: savedTemplate,
-        printfulData: templateData,
-        userId: userId, // Include the user ID in the response
-        shopifyProduct: createProduct.productCreate.product || createProduct,
+        // printfulData: templateData,
+        // userId: userId, // Include the user ID in the response
+        // shopifyProduct: createProduct.productCreate.product || createProduct,
       },
       {
         status: 200,
@@ -389,56 +385,4 @@ async function createOrGetUser(user: any): Promise<string | null> {
     console.error("Error in createOrGetUser:", error);
     throw new Error(`User operation failed: ${error.message}`);
   }
-}
-
-const fetchCheckMockupTasksStatus = async (taskKey: string): Promise<string> => {
-  try {
-    const response = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/mockup-task/${taskKey}`);
-    if (!response.ok) {
-      // Optional: handle non-OK HTTP statuses gracefully
-      return "unknown";
-    }
-    const data = (await response.json()) as any;
-    return data?.task?.status || "unknown";
-  } catch (error) {
-    return "unknown";
-  }
-}
-
-async function pollMockupTaskStatus(
-  taskKey: string,
-  interval = 3000,   // 3 seconds between polls
-  maxRetries = 20    // max retries before giving up
-): Promise<string> {
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-  let attempts = 0;
-
-  while (attempts < maxRetries) {
-    try {
-      const response = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/mockup-task/${taskKey}`);
-
-      if (!response.ok) {
-        console.error(`Error fetching task status: ${response.statusText}`);
-        return "failed";
-      }
-
-      const data = (await response.json()) as any;
-      const status = data?.task?.status || "unknown";
-
-      if (status === "pending") {
-        // Still pending, wait and retry
-        await delay(interval);
-        attempts++;
-      } else {
-        // Completed, failed, or any other status — stop polling
-        return status;
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      return "failed";
-    }
-  }
-
-  // If maxRetries exceeded and still pending, return timeout or pending
-  return "timeout";
 }
