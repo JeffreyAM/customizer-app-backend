@@ -134,20 +134,15 @@ export async function POST(req: NextRequest) {
       );
     }
     // get the template from backend and create the mockup
-    const response = await fetch(`api/printful/template/${templateId}`);
+    const templateFromBackendResponse = await fetch(`/api/printful/template/${templateId}`);
 
-    if (response.status !== 200) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        {
-          error: "Failed to fetch template from backend",
-          details: errorData,
-        },
-        { status: response.status }
-      );
+    if (!templateFromBackendResponse.ok) {
+      const errorData = await templateFromBackendResponse.json();
+      console.error("Failed to fetch template:", errorData);
+      return;
     }
 
-    const templateFromBackend = await response.json();
+    const templateFromBackend = await templateFromBackendResponse.json();
 
     const variantIds = (templateFromBackend.template.variant_options || []).filter(
         (id: number) => typeof id === "number" && !isNaN(id)
