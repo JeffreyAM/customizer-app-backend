@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       );
     }
     // get the template from backend and create the mockup
-    const templateFromBackendResponse = await fetch(`/api/printful/template/${templateId}`);
+    const templateFromBackendResponse = await fetch(`${PRINTFUL_API_BASE}/api/printful/template/${templateId}`);
 
     if (!templateFromBackendResponse.ok) {
       const errorData = await templateFromBackendResponse.json();
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-    const createMockUpResponse = await fetch("/api/printful/mockup", {
+    const createMockUpResponse = await fetch(`${PRINTFUL_API_BASE}/api/printful/mockup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
       console.error(`Failed to create mockup: ${createMockUp.error || "Unknown error"}`);
     }
 
-    const mockupResultResponse = await fetch(`/api/mockup-result/${createMockUp.task?.task_key}`);
+    const mockupResultResponse = await fetch(`${PRINTFUL_API_BASE}/api/mockup-result/${createMockUp.task?.task_key}`);
 
     if (!mockupResultResponse.ok) {
       throw new Error(`Failed to fetch mockup result: ${mockupResultResponse.statusText}`);
