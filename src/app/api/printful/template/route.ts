@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       );
     }
     // get the template from backend and create the mockup
-    const response = await fetch(`${PRINTFUL_API_BASE}/template/${templateId}`);
+    const response = await fetch(`api/printful/template/${templateId}`);
 
     if (response.status !== 200) {
       const errorData = await response.json();
