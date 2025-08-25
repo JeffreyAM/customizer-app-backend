@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { createShopifyProduct } from '@/helpers/create-product';
 
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL; 
+const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL; 
 const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 
 /**
@@ -134,19 +135,15 @@ export async function POST(req: NextRequest) {
       );
     }
     // get the template from backend and create the mockup
-    const templateFromBackendResponse = await fetch(`${PRINTFUL_API_BASE}/api/printful/template/${templateId}`);
+    const backendUrl = `${NEXT_PUBLIC_BASE_URL}/api/printful/template/${templateId}`;
+    const backendRes = await fetch(backendUrl);
 
-    if (!templateFromBackendResponse.ok) {
-      const errorData = await templateFromBackendResponse.json();
-      return NextResponse.json(
-        { error: "Failed to create template", details: (errorData as Error).message },
-        {
-          status: 500,
-        }
-      );
+    if (!backendRes.ok) {
+      const err = await backendRes.text();
+      return NextResponse.json({ error: "Failed to call internal template API", details: err }, { status: 500 });
     }
 
-    const templateFromBackend = await templateFromBackendResponse.json();
+    const templateFromBackend = await backendRes.json();
 
     const variantIds = (templateFromBackend.template.variant_options || []).filter(
         (id: number) => typeof id === "number" && !isNaN(id)
@@ -169,29 +166,55 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-    const createMockUpResponse = await fetch(`${PRINTFUL_API_BASE}/api/printful/mockup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        template_id: templateFromBackend.template.id,
-        product_template_id: templateFromBackend.template.template_id,
-        catalog_product_id: productId,
-        variant_ids: variantIds,
-      }),
-    });
+      const createMockUpResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/printful/mockup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template_id: templateFromBackend.template.id,
+          product_template_id: templateFromBackend.template.template_id,
+          catalog_product_id: productId,
+          variant_ids: variantIds,
+        }),
+      });
 
-    const createMockUp = await createMockUpResponse.json();
+      const createMockUp = await createMockUpResponse.json();
+      console.log(createMockUp);
 
-    if (createMockUp.ok && createMockUp.task) {
-      console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
-    } else {
-      console.error(`Failed to create mockup: ${createMockUp.error || "Unknown error"}`);
+      if (createMockUpResponse.ok && createMockUp.task) {
+        console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
+      } else {
+        return NextResponse.json(
+          {
+            error: "Failed to call internal template API",
+            details: createMockUp.error || "Unknown error",
+          },
+          { status: 500 }
+        );
+      }
+
+    const taskKey = createMockUp.task.task_key;
+
+    const taskStatus = await pollMockupTaskStatus(taskKey);
+    if(taskStatus != "completed"){
+      return NextResponse.json(
+        {
+          error: "Failed to Mockup Task",
+          details: "",
+        },
+        { status: 500 }
+      );
     }
 
-    const mockupResultResponse = await fetch(`${PRINTFUL_API_BASE}/api/mockup-result/${createMockUp.task?.task_key}`);
+    const mockupResultResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/mockup-result/${taskKey}`);
 
     if (!mockupResultResponse.ok) {
-      throw new Error(`Failed to fetch mockup result: ${mockupResultResponse.statusText}`);
+      return NextResponse.json(
+        {
+          error: "Failed to call internal template API",
+          details:  "Unknown error",
+        },
+        { status: 500 }
+      );
     }
 
     const mockupResult = (await mockupResultResponse.json()) as {
@@ -200,6 +223,8 @@ export async function POST(req: NextRequest) {
         extra?: { url: string }[];
       }[];
     };
+
+    console.log(mockupResult);
 
     // Safely extract image URLs
     const getMockupImages = (): string[] => {
@@ -364,4 +389,56 @@ async function createOrGetUser(user: any): Promise<string | null> {
     console.error("Error in createOrGetUser:", error);
     throw new Error(`User operation failed: ${error.message}`);
   }
+}
+
+const fetchCheckMockupTasksStatus = async (taskKey: string): Promise<string> => {
+  try {
+    const response = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/mockup-task/${taskKey}`);
+    if (!response.ok) {
+      // Optional: handle non-OK HTTP statuses gracefully
+      return "unknown";
+    }
+    const data = (await response.json()) as any;
+    return data?.task?.status || "unknown";
+  } catch (error) {
+    return "unknown";
+  }
+}
+
+async function pollMockupTaskStatus(
+  taskKey: string,
+  interval = 3000,   // 3 seconds between polls
+  maxRetries = 20    // max retries before giving up
+): Promise<string> {
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  let attempts = 0;
+
+  while (attempts < maxRetries) {
+    try {
+      const response = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/mockup-task/${taskKey}`);
+
+      if (!response.ok) {
+        console.error(`Error fetching task status: ${response.statusText}`);
+        return "failed";
+      }
+
+      const data = (await response.json()) as any;
+      const status = data?.task?.status || "unknown";
+
+      if (status === "pending") {
+        // Still pending, wait and retry
+        await delay(interval);
+        attempts++;
+      } else {
+        // Completed, failed, or any other status — stop polling
+        return status;
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      return "failed";
+    }
+  }
+
+  // If maxRetries exceeded and still pending, return timeout or pending
+  return "timeout";
 }
