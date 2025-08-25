@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
     const createMockUp = await createMockUpResponse.json();
     console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
     const taskKey = createMockUp.task.task_key;
-    createShopifyProductOnBackGround(productId,templateId,taskKey,variantOptions, apiKey).catch((error) => {
+    pollAndCreateShopifyProduct(productId,templateId,taskKey,variantOptions).catch((error) => {
         console.error("Background creating shopify product failed:", error);
       });
 
@@ -372,87 +372,75 @@ async function createOrGetUser(user: any): Promise<string | null> {
   }
 }
 
-// Background function to update mockup URL when it becomes available
-async function createShopifyProductOnBackGround(
-  productId: number,
-  templateId: number,
-  taskKey: string,
-  variantIds: number[] = [],
-  apiKey: string,
-  maxRetries: number = 8
-): Promise<void> {
-  console.log(`🛒 Starting background Shopify Product creation for task: ${taskKey}`);
+const POLLING_INTERVAL = 3000; // 3 seconds
+const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+async function pollAndCreateShopifyProduct(productId:any,templateId:any,taskKey:any, variantIds = []) {
+  const statusUrl = `${PRINTFUL_API_BASE}/mockup-generator/task?task_key=${taskKey}`;
+
+  while (true) {
+    await new Promise((res) => setTimeout(res, POLLING_INTERVAL));
+
     try {
-      const templateResponse = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mockup-task/${taskKey}`);
+      const response = await fetch(statusUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+          "X-PF-Store-Id": STORE_ID,
+        },
+      });
 
-      if (templateResponse.status === 200) {
-        const task = templateResponse.data?.task;
-        const status = task?.status;
+      const data = await response.json();
+      const status = data?.result?.status;
 
-        if (status === "completed") {
-          console.log(`✅ Task completed on attempt ${attempt}. Fetching mockup result...`);
+      if (status === "completed") {
+        console.log(`✅ Task ${taskKey} completed. Proceeding to create Shopify product.`);
 
-          const mockupResultResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mockup-result/${taskKey}`);
+        // Get the mockup result
+        const mockupRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mockup-result/${taskKey}`);
+        const mockupData = await mockupRes.json();
 
-          if (!mockupResultResponse.ok) {
-            throw new Error("Failed to fetch mockup result");
-          }
+        const images = [
+          ...new Set(
+            mockupData.mockups.flatMap((mockup:any) => [
+              mockup.mockup_url,
+              ...(mockup.extra?.map((img:any) => img.url) || []),
+            ])
+          ),
+        ];
 
-          const mockupResult = (await mockupResultResponse.json()) as {
-            mockups: {
-              mockup_url: string;
-              extra?: { url: string }[];
-            }[];
-          };
-
-          const getMockupImages = (): string[] => {
-            if (!mockupResult || !mockupResult.mockups) return [];
-
-            return [
-              ...new Set(
-                mockupResult.mockups.flatMap((mockup) => [
-                  mockup.mockup_url,
-                  ...(mockup.extra?.map((img) => img.url) || []),
-                ])
-              ),
-            ];
-          };
-
-          const images = getMockupImages();
-
-          const createProduct = await createShopifyProduct(
-            'https://customizer-app-backend.vercel.app/api/shopify/product',
-            productId,
+        // Call Shopify product API
+        const shopifyRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            product_id: productId,
             images,
-            templateId,
-            variantIds
-          );
+            edmTemplateId: templateId,
+            availableVariantIds: variantIds,
+          }),
+        });
 
-          console.log("✅ Shopify product created:", createProduct);
-          return; // Exit loop on success
-        } else if (status === "failed") {
-          console.error("❌ Mockup task failed.");
-          return;
+        const shopifyData = await shopifyRes.json();
+
+        if (!shopifyRes.ok || shopifyData.productCreate?.userErrors?.length > 0) {
+          console.error("❌ Failed to create Shopify product:", shopifyData);
+        } else {
+          console.log("✅ Shopify product created:", shopifyData.productCreate.product);
         }
+
+        return;
       }
 
-      if (attempt < maxRetries) {
-        const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 30000);
-        console.log(`⏳ Attempt ${attempt}: Task not complete. Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+      if (status === "failed") {
+        console.error(`❌ Task ${taskKey} failed.`);
+        return;
       }
 
-    } catch (error) {
-      console.error(`⚠️ Attempt ${attempt} failed:`, error);
+      console.log(`⏳ Task ${taskKey} still pending...`);
 
-      if (attempt < maxRetries) {
-        const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 30000);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+    } catch (err) {
+      console.error(`⚠️ Error while polling task ${taskKey}:`, err);
     }
   }
-
-  console.log(`⚠️ Max retries reached. Task ${taskKey} did not complete.`);
 }
