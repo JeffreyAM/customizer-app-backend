@@ -135,48 +135,48 @@ export async function POST(req: NextRequest) {
       );
     }
     // get the template from backend and create the mockup
-    const backendUrl = `${NEXT_PUBLIC_BASE_URL}/api/printful/template/${templateId}`;
-    const backendRes = await fetch(backendUrl);
+  //   const backendUrl = `${NEXT_PUBLIC_BASE_URL}/api/printful/template/${templateId}`;
+  //   const backendRes = await fetch(backendUrl);
 
-    if (!backendRes.ok) {
-      const err = await backendRes.text();
-      return NextResponse.json({ error: "Failed to get  template data from the backend", details: err }, { status: 500 });
-    }
+  //   if (!backendRes.ok) {
+  //     const err = await backendRes.text();
+  //     return NextResponse.json({ error: "Failed to get  template data from the backend", details: err }, { status: 500 });
+  //   }
 
-    const templateFromBackend = await backendRes.json();
+  //   const templateFromBackend = await backendRes.json();
 
-    const variantIds = (templateFromBackend.template.variant_options || []).filter(
-        (id: number) => typeof id === "number" && !isNaN(id)
-      );
+  //   const variantIds = (templateFromBackend.template.variant_options || []).filter(
+  //       (id: number) => typeof id === "number" && !isNaN(id)
+  //     );
 
-  const createMockUpResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/printful/mockup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      template_id: templateFromBackend.template.id,
-      product_template_id: templateFromBackend.template.template_id,
-      catalog_product_id: productId,
-      variant_ids: variantIds,
-    }),
-  });
+  // const createMockUpResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/printful/mockup`, {
+  //   method: "POST",
+  //   headers: { "Content-Type": "application/json" },
+  //   body: JSON.stringify({
+  //     template_id: templateFromBackend.template.id,
+  //     product_template_id: templateFromBackend.template.template_id,
+  //     catalog_product_id: productId,
+  //     variant_ids: variantIds,
+  //   }),
+  // });
 
-  if (createMockUpResponse.ok) {
-    const createMockUp = await createMockUpResponse.json();
-    console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
-    const taskKey = createMockUp.task.task_key;
-    pollAndCreateShopifyProduct(productId,templateId,taskKey,variantOptions).catch((error) => {
-        console.error("Background creating shopify product failed:", error);
-      });
+  // if (createMockUpResponse.ok) {
+  //   const createMockUp = await createMockUpResponse.json();
+  //   console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
+  //   const taskKey = createMockUp.task.task_key;
+  //   pollAndCreateShopifyProduct(productId,templateId,taskKey,variantOptions).catch((error) => {
+  //       console.error("Background creating shopify product failed:", error);
+  //     });
 
-  } else {
-    return NextResponse.json(
-      {
-        error: "Failed to create mockup",
-        details: "Server error",
-      },
-      { status: 500 }
-    );
-  }
+  // } else {
+  //   return NextResponse.json(
+  //     {
+  //       error: "Failed to create mockup",
+  //       details: "Server error",
+  //     },
+  //     { status: 500 }
+  //   );
+  // }
 
   // const taskKey = createMockUp.task.task_key;
 
@@ -226,16 +226,16 @@ export async function POST(req: NextRequest) {
   //   ];
   // };
 
-  // const shopifyImgs = imageUrls || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
-  // console.log(shopifyImgs);
+  const shopifyImgs = imageUrl || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
+  console.log(shopifyImgs);
 
-    // const createProduct = await createShopifyProduct(
-    //   'https://customizer-app-backend.vercel.app/api/shopify/product',
-    //   productId,
-    //   shopifyImgs,
-    //   templateId,
-    //   variantOptions || []
-    // );
+    const createProduct = await createShopifyProduct(
+      'https://customizer-app-backend.vercel.app/api/shopify/product',
+      productId,
+      shopifyImgs,
+      templateId,
+      variantOptions || []
+    );
 
     return NextResponse.json(
       {
