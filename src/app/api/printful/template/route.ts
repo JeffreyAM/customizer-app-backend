@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
 
     if (!backendRes.ok) {
       const err = await backendRes.text();
-      return NextResponse.json({ error: "Failed to call internal template API", details: err }, { status: 500 });
+      return NextResponse.json({ error: "Failed to get  template data from the backend", details: err }, { status: 500 });
     }
 
     const templateFromBackend = await backendRes.json();
@@ -148,23 +148,6 @@ export async function POST(req: NextRequest) {
     const variantIds = (templateFromBackend.template.variant_options || []).filter(
         (id: number) => typeof id === "number" && !isNaN(id)
       );
-
-  const placement = templateData.placements?.[0]?.placement || "front";
-
-  const files = [
-    {
-      placement,
-      image_url: templateFromBackend.template.image_url,
-      position: {
-        area_width: 1800,
-        area_height: 2400,
-        width: 1800,
-        height: 2400,
-        top: 0,
-        left: 0,
-      },
-    },
-  ];
 
   const createMockUpResponse = await fetch(`${NEXT_PUBLIC_BASE_URL}/api/printful/mockup`, {
     method: "POST",
@@ -177,20 +160,23 @@ export async function POST(req: NextRequest) {
     }),
   });
 
-  // const createMockUp = await createMockUpResponse.json();
-  // console.log(createMockUp);
+  if (createMockUpResponse.ok) {
+    const createMockUp = await createMockUpResponse.json();
+    console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
+    const taskKey = createMockUp.task.task_key;
+    createShopifyProductOnBackGround(productId,templateId,taskKey,variantOptions, apiKey).catch((error) => {
+        console.error("Background creating shopify product failed:", error);
+      });
 
-  // if (createMockUpResponse.ok && createMockUp.task) {
-  //   console.log(`Mockup task created! Task ID: ${createMockUp.task.task_key}`);
-  // } else {
-  //   return NextResponse.json(
-  //     {
-  //       error: "Failed to call internal template API",
-  //       details: createMockUp.error || "Unknown error",
-  //     },
-  //     { status: 500 }
-  //   );
-  // }
+  } else {
+    return NextResponse.json(
+      {
+        error: "Failed to create mockup",
+        details: "Server error",
+      },
+      { status: 500 }
+    );
+  }
 
   // const taskKey = createMockUp.task.task_key;
 
@@ -240,25 +226,24 @@ export async function POST(req: NextRequest) {
   //   ];
   // };
 
-  // const shopifyImgs = getMockupImages();
-
-  // // const shopifyImgs = imageUrls || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
+  // const shopifyImgs = imageUrls || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
   // console.log(shopifyImgs);
 
-  //   const createProduct = await createShopifyProduct(
-  //     'https://customizer-app-backend.vercel.app/api/shopify/product',
-  //     productId,
-  //     shopifyImgs,
-  //     templateId,
-  //     variantOptions || []
-  //   );
+    // const createProduct = await createShopifyProduct(
+    //   'https://customizer-app-backend.vercel.app/api/shopify/product',
+    //   productId,
+    //   shopifyImgs,
+    //   templateId,
+    //   variantOptions || []
+    // );
 
     return NextResponse.json(
       {
         success: true,
         template: savedTemplate,
-        // printfulData: templateData,
-        // userId: userId, // Include the user ID in the response
+        printfulData: templateData,
+        userId: userId, // Include the user ID in the response
+        details: "Creating Shopify Product in the background"
         // shopifyProduct: createProduct.productCreate.product || createProduct,
       },
       {
@@ -385,4 +370,89 @@ async function createOrGetUser(user: any): Promise<string | null> {
     console.error("Error in createOrGetUser:", error);
     throw new Error(`User operation failed: ${error.message}`);
   }
+}
+
+// Background function to update mockup URL when it becomes available
+async function createShopifyProductOnBackGround(
+  productId: number,
+  templateId: number,
+  taskKey: string,
+  variantIds: number[] = [],
+  apiKey: string,
+  maxRetries: number = 8
+): Promise<void> {
+  console.log(`🛒 Starting background Shopify Product creation for task: ${taskKey}`);
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const templateResponse = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mockup-task/${taskKey}`);
+
+      if (templateResponse.status === 200) {
+        const task = templateResponse.data?.task;
+        const status = task?.status;
+
+        if (status === "completed") {
+          console.log(`✅ Task completed on attempt ${attempt}. Fetching mockup result...`);
+
+          const mockupResultResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mockup-result/${taskKey}`);
+
+          if (!mockupResultResponse.ok) {
+            throw new Error("Failed to fetch mockup result");
+          }
+
+          const mockupResult = (await mockupResultResponse.json()) as {
+            mockups: {
+              mockup_url: string;
+              extra?: { url: string }[];
+            }[];
+          };
+
+          const getMockupImages = (): string[] => {
+            if (!mockupResult || !mockupResult.mockups) return [];
+
+            return [
+              ...new Set(
+                mockupResult.mockups.flatMap((mockup) => [
+                  mockup.mockup_url,
+                  ...(mockup.extra?.map((img) => img.url) || []),
+                ])
+              ),
+            ];
+          };
+
+          const images = getMockupImages();
+
+          const createProduct = await createShopifyProduct(
+            'https://customizer-app-backend.vercel.app/api/shopify/product',
+            productId,
+            images,
+            templateId,
+            variantIds
+          );
+
+          console.log("✅ Shopify product created:", createProduct);
+          return; // Exit loop on success
+        } else if (status === "failed") {
+          console.error("❌ Mockup task failed.");
+          return;
+        }
+      }
+
+      if (attempt < maxRetries) {
+        const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 30000);
+        console.log(`⏳ Attempt ${attempt}: Task not complete. Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+    } catch (error) {
+      console.error(`⚠️ Attempt ${attempt} failed:`, error);
+
+      if (attempt < maxRetries) {
+        const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 30000);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  console.log(`⚠️ Max retries reached. Task ${taskKey} did not complete.`);
 }
