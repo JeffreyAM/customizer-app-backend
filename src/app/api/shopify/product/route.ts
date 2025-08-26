@@ -26,7 +26,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
-function buildProductOptionsAndVariants(variants: any[]) {
+function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
   const sizeSet = new Set<string>();
   const colorSet = new Set<string>();
 
@@ -66,6 +66,7 @@ function buildProductOptionsAndVariants(variants: any[]) {
         name: capitalize(v.color || "Default"),
       });
     }
+    const sku = `${edmTemplateId}_${v.product_id}_${v.color || "default"}_${v.size || "default"}`.toLowerCase();
 
     return {
       optionValues,
@@ -78,6 +79,10 @@ function buildProductOptionsAndVariants(variants: any[]) {
           value: `${v.id}`,
         },
       ],
+      inventoryItem: {
+        sku: sku,
+        tracked: true,
+      },
     };
   });
 
@@ -255,7 +260,7 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     const client = new shopify.clients.Graphql({ session });
 
-    const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availablePrintfulProductVariants);
+    const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availablePrintfulProductVariants,edmTemplateId);
 
     const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
 
