@@ -135,24 +135,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-  const shopifyImgs = imageUrl || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
+  // const shopifyImgs = imageUrl || "https://placehold.co/600x600.png"; // Fallback image if no mockup URL available
 
-    const createProduct = await createShopifyProduct(
-      'https://customizer-app-backend.vercel.app/api/shopify/product',
-      productId,
-      [shopifyImgs],
-      templateId,
-      variantOptions || []
-    );
+  //   const createProduct = await createShopifyProduct(
+  //     'https://customizer-app-backend.vercel.app/api/shopify/product',
+  //     productId,
+  //     [shopifyImgs],
+  //     templateId,
+  //     variantOptions || []
+  //   );
 
     return NextResponse.json(
       {
         success: true,
-        template: savedTemplate,
-        printfulData: templateData,
-        userId: userId, // Include the user ID in the response
-        details: "Creating Shopify Product in the background",
-        shopifyProduct: createProduct.productCreate.product || createProduct,
+        // template: savedTemplate,
+        // printfulData: templateData,
+        // userId: userId, // Include the user ID in the response
+        // details: "Creating Shopify Product in the background",
+        // shopifyProduct: createProduct.productCreate.product || createProduct,
       },
       {
         status: 200,
@@ -280,75 +280,3 @@ async function createOrGetUser(user: any): Promise<string | null> {
   }
 }
 
-const POLLING_INTERVAL = 3000; // 3 seconds
-const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
-
-async function pollAndCreateShopifyProduct(productId:any,templateId:any,taskKey:any, variantIds = []) {
-  const statusUrl = `${PRINTFUL_API_BASE}/mockup-generator/task?task_key=${taskKey}`;
-
-  while (true) {
-    await new Promise((res) => setTimeout(res, POLLING_INTERVAL));
-
-    try {
-      const response = await fetch(statusUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${PRINTFUL_API_KEY}`,
-          "X-PF-Store-Id": STORE_ID,
-        },
-      });
-
-      const data = await response.json();
-      const status = data?.result?.status;
-
-      if (status === "completed") {
-        console.log(`✅ Task ${taskKey} completed. Proceeding to create Shopify product.`);
-
-        // Get the mockup result
-        const mockupRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mockup-result/${taskKey}`);
-        const mockupData = await mockupRes.json();
-
-        const images = [
-          ...new Set(
-            mockupData.mockups.flatMap((mockup:any) => [
-              mockup.mockup_url,
-              ...(mockup.extra?.map((img:any) => img.url) || []),
-            ])
-          ),
-        ];
-
-        // Call Shopify product API
-        const shopifyRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: productId,
-            images,
-            edmTemplateId: templateId,
-            availableVariantIds: variantIds,
-          }),
-        });
-
-        const shopifyData = await shopifyRes.json();
-
-        if (!shopifyRes.ok || shopifyData.productCreate?.userErrors?.length > 0) {
-          console.error("❌ Failed to create Shopify product:", shopifyData);
-        } else {
-          console.log("✅ Shopify product created:", shopifyData.productCreate.product);
-        }
-
-        return;
-      }
-
-      if (status === "failed") {
-        console.error(`❌ Task ${taskKey} failed.`);
-        return;
-      }
-
-      console.log(`⏳ Task ${taskKey} still pending...`);
-
-    } catch (err) {
-      console.error(`⚠️ Error while polling task ${taskKey}:`, err);
-    }
-  }
-}
