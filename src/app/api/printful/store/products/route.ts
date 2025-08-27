@@ -3,7 +3,7 @@ import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
 import { supabase } from "@/lib/supabase";
 import axios from "axios";
-import { PrintfulProductResponse } from "@/types";
+import { PrintfulProductCatalogVariant, PrintfulProductResponse } from "@/types";
 import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
 
 /**
@@ -44,10 +44,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Get printful product data
-    const printfulProductResponse = await axios.get<PrintfulProductResponse>(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/products/${printfulProductId}`
+    // const printfulProductResponse = await axios.get<PrintfulProductCatalogVariant>(
+    const printfulProductResponse = await axios.get(
+      // `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/products/${printfulProductId}`
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-products/${printfulProductId}/catalog-variants`
     );
-    const printfulVariants = printfulProductResponse.data.result.variants;
+    const printfulVariants = printfulProductResponse.data.data as PrintfulProductCatalogVariant[];
 
     // Shopify GraphQL client
     const shopify = getShopify();

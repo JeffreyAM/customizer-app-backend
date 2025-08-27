@@ -27,8 +27,7 @@ export async function syncShopifyProductToPrintful(
     if (!shopifyProductResponse.data?.product) {
       throw new Error("Shopify product response data is undefined");
     }
-    console.log("joylyn")
-    console.log(shopifyProductResponse)
+    
     const shopifyProduct = shopifyProductResponse.data.product;
     shopifyProduct.variants.nodes = await fetchAllVariants(client, shopifyProductID); // Fetch all variants
 
