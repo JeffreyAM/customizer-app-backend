@@ -7,6 +7,8 @@ import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariant
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
 import { GET_PRODUCTS } from "@/queries/shopify/getProducts";
 import {
+  PrintfulProductCatalogResponse,
+  PrintfulProductCatalogVariant,
   PrintfulProductResponse,
   ShopifyProductCreateResponse,
   ShopifyProductPublishResponse,
@@ -66,11 +68,11 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
         name: capitalize(v.color || "Default"),
       });
     }
-    const sku = `${edmTemplateId}_${v.product_id}_${v.color || "default"}_${v.size || "default"}`.toLowerCase();
+    const sku = `${edmTemplateId}_${v.catalog_product_id}_${v.color || "default"}_${v.size || "default"}`.toLowerCase();
 
     return {
       optionValues,
-      price: String(selPrice(v.price) || "0.00"),
+      price: String(selPrice(v.techniques[0].price) || "0.00"),
       barcode: v.id.toString(),
       metafields: [
         {
@@ -125,7 +127,8 @@ async function createShopifyProduct(
   productOptions: Array<Record<string, any>>,
   images: string[],
   edmTemplateId: string,
-  productData: PrintfulProductResponse["result"]["product"]
+  // productData: PrintfulProductResponse["result"]["product"]
+  productData: PrintfulProductCatalogResponse
 ) {
   const media = images.map((url: string, idx: number) => ({
     originalSource: url,
@@ -140,8 +143,9 @@ async function createShopifyProduct(
       collectionsToJoin: [
         "gid://shopify/Collection/490639720752", // Default "Home Page" collection
       ],
-      title: productData.title,
-      descriptionHtml: productData.description,
+      title: productData.data.name,
+      // title: productData.title,
+      descriptionHtml: productData.data.description,
       vendor: "Customized Girl EDM",
       status: "ACTIVE",
       tags: [`edm_template_id_${edmTemplateId}`],
@@ -246,23 +250,28 @@ export async function POST(req: NextRequest) {
 
   try {
     const printfulProductResponse = await axios.get(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/products/${product_id}`
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-products/${product_id}`
     );
 
-    const printfulProductData = printfulProductResponse.data as PrintfulProductResponse;
+    const printfulProductVariantsResponse = await axios.get(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-products/${product_id}/catalog-variants?limit=100`
+    );
 
-    const { product: printfulProduct, variants: printfulProductVariants } = printfulProductData.result;
+
+    const printfulProductData = printfulProductResponse.data as PrintfulProductCatalogResponse;
+    // const { product: printfulProduct, variants: printfulProductVariants } = printfulProductData.result;
 
     // Get only available variants based on availableVariantIds
-    const availablePrintfulProductVariants = printfulProductVariants.filter((v) => availableVariantIds.includes(v.id));
-
+    // const availablePrintfulProductVariants = printfulProductVariants.filter((v) => availableVariantIds.includes(v.id));
+    const availablePrintfulProductVariants = await fetchVariantsByIds(availableVariantIds);
     const shopify = getShopify();
     const session = await getSession();
     const client = new shopify.clients.Graphql({ session });
 
     const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availablePrintfulProductVariants,edmTemplateId);
 
-    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
+    // const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
+    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProductData);
 
     if (!shopifyProduct) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });
@@ -311,4 +320,36 @@ export async function POST(req: NextRequest) {
     console.error("Error creating product:", error);
     return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
   }
+}
+
+async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProductCatalogVariant[]> {
+  // Base URL from env (you had product_id but it's not defined here, so removed)
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  const fetchPromises = variantIds.map(async (id) => {
+    try {
+      const res = await axios.get(`${baseUrl}/api/printful/v2/catalog-variants/${id}`);
+      const res2 = await axios.get(`${baseUrl}/api/printful/v2/catalog-variants/${id}/availability`);
+      const res3 = await axios.get(`${baseUrl}/api/printful/v2/catalog-variants/${id}/prices`);
+      
+      const var1 = res.data.data;
+      const var2 = res2.data.data.techniques[0].selling_regions; 
+      const var3 = res3.data.data.variant.techniques;
+      const enrichedVariant: PrintfulProductCatalogVariant = {
+        ...var1,
+        selling_regions: var2,
+        techniques: var3 
+      };
+
+      return enrichedVariant;
+    } catch (error) {
+      // You can customize error handling here
+      throw new Error(`Failed to fetch variant with id ${id}: ${error}`);
+    }
+  });
+
+  const variants = await Promise.all(fetchPromises);
+
+  return variants;
+
 }

@@ -1,5 +1,5 @@
 import { GET_PRODUCT } from "@/queries/shopify/getProduct";
-import { PrintfulProductResponse, PrintfulProductSyncResponse, ShopifyProductResponse } from "@/types";
+import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, ShopifyProductResponse } from "@/types";
 import axios from "axios";
 import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
@@ -12,7 +12,8 @@ const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 export async function syncShopifyProductToPrintful(
   client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
   edmTemplateId: string,
-  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  // printfulVariants: PrintfulProductResponse["result"]["variants"],
+  printfulVariants: PrintfulProductCatalogVariant[],
   shopifyProductID: string
 ) {
   // delay for 1 second
@@ -26,7 +27,8 @@ export async function syncShopifyProductToPrintful(
     if (!shopifyProductResponse.data?.product) {
       throw new Error("Shopify product response data is undefined");
     }
-
+    console.log("joylyn")
+    console.log(shopifyProductResponse)
     const shopifyProduct = shopifyProductResponse.data.product;
     shopifyProduct.variants.nodes = await fetchAllVariants(client, shopifyProductID); // Fetch all variants
 
@@ -118,7 +120,8 @@ async function fetchAllVariants(
 }
 
 function getPrintfulVariantIdFromShopifyVariantMetaFields(
-  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  // printfulVariants: PrintfulProductResponse["result"]["variants"],
+  printfulVariants: PrintfulProductCatalogVariant[],
   metafields: ShopifyProductResponse["product"]["variants"]["nodes"][number]["metafields"]["nodes"]
 ): number | null {
   for (const variant of printfulVariants) {
@@ -148,7 +151,8 @@ function getPrintFilesForVariant(
 
 function mapSyncVariant(
   shopifyVariant: ShopifyProductResponse["product"]["variants"]["nodes"][number],
-  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  // printfulVariants: PrintfulProductResponse["result"]["variants"],
+  printfulVariants: PrintfulProductCatalogVariant[],
   mockupResults?: Array<{
     printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
   }>
@@ -172,7 +176,8 @@ function mapSyncVariant(
 
 function buildSyncPayload(
   shopifyProduct: ShopifyProductResponse["product"],
-  printfulVariants: PrintfulProductResponse["result"]["variants"],
+  printfulVariants: PrintfulProductCatalogVariant[],
+  // printfulVariants: PrintfulProductResponse["result"]["variants"],
   edmTemplateId: string,
   mockupResults?: Array<{
     printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
