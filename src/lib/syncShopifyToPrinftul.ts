@@ -166,7 +166,7 @@ async function mapSyncVariant(
       id: option.name,
       value: option.value,
     })),
-    extraOption,
+    ...extraOption,
   ];
 
   return {
@@ -225,8 +225,8 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
   try {
     const res = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful//product-templates/${templateId}`);
     const extraOpt = res.data.result.option_data;
-    console.log("extraDd",JSON.stringify(extraOpt[0],null,2))
-    return extraOpt[0];
+    
+    return extraOpt;
   } catch (error) {
     // You can customize error handling here
     throw new Error(`Failed to fetch extra Opt: ${error}`);
