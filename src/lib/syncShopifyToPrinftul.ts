@@ -161,6 +161,8 @@ async function mapSyncVariant(
   const variantId = getPrintfulVariantIdFromShopifyVariantMetaFields(printfulVariants, shopifyVariant.metafields.nodes);
 
   const extraOption: any = await fetchExtraOptionForEmbroidery(edmTemplateId);
+  // const normalizedExtraOptions = extraOption.map(normalizeThreadColorOption);
+
   const options: any = [
     ...shopifyVariant.selectedOptions.map((option) => ({
       id: option.name,
@@ -183,6 +185,27 @@ async function mapSyncVariant(
     options : options,
     availability_status: "active",
   };
+}
+
+/**
+ * 
+ * @param option use this function to prevent error syncing to printful when user selected unlimited
+ * for embroidery technique in EDM
+ * @returns 
+ */
+function normalizeThreadColorOption(option: { id: string; value: string[] }) {
+  const allowedThreadColors = [
+    "#FFFFFF", "#000000", "#96A1A8", "#A67843", "#FFCC00", "#E25C27", "#CC3366",
+    "#CC3333", "#660000", "#333366", "#005397", "#3399FF", "#6B5294", "#01784E", "#7BA35A"
+  ];
+  if (option.id.startsWith("thread_colors_") && Array.isArray(option.value) && option.value.length === 0) {
+    // Assume "unlimited colors" selected, replace with all allowed
+    return {
+      ...option,
+      value: allowedThreadColors,
+    };
+  }
+  return option;
 }
 
 async function buildSyncPayload(
