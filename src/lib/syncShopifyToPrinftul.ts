@@ -1,5 +1,5 @@
 import { GET_PRODUCT } from "@/queries/shopify/getProduct";
-import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, ShopifyProductResponse } from "@/types";
+import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, SelectedOption, ShopifyProductResponse } from "@/types";
 import axios from "axios";
 import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
@@ -8,6 +8,7 @@ import { GraphQLClientResponse } from "@shopify/shopify-api";
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
 const STORE_ID = process.env.PRINTFUL_STORE_ID!;
+const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 export async function syncShopifyProductToPrintful(
   client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
@@ -64,7 +65,7 @@ export async function syncShopifyProductToPrintful(
       throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
     }
 
-    const payload = buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
+    const payload = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
 
     console.log("Payload request:", JSON.stringify(payload, null, 2));
 
@@ -148,15 +149,25 @@ function getPrintFilesForVariant(
     }));
 }
 
-function mapSyncVariant(
+async function mapSyncVariant(
   shopifyVariant: ShopifyProductResponse["product"]["variants"]["nodes"][number],
   // printfulVariants: PrintfulProductResponse["result"]["variants"],
   printfulVariants: PrintfulProductCatalogVariant[],
+  edmTemplateId: any,
   mockupResults?: Array<{
     printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
   }>
 ) {
   const variantId = getPrintfulVariantIdFromShopifyVariantMetaFields(printfulVariants, shopifyVariant.metafields.nodes);
+
+  const extraOption: any = await fetchExtraOptionForEmbroidery(edmTemplateId);
+  const options: any = [
+    ...shopifyVariant.selectedOptions.map((option) => ({
+      id: option.name,
+      value: option.value,
+    })),
+    extraOption,
+  ];
 
   return {
     external_id: shopifyVariant.id,
@@ -165,15 +176,16 @@ function mapSyncVariant(
     is_ignored: false,
     sku: shopifyVariant.sku || "",
     files: getPrintFilesForVariant(variantId, mockupResults),
-    options: shopifyVariant.selectedOptions.map((option) => ({
-      id: option.name,
-      value: option.value,
-    })),
+    // options: shopifyVariant.selectedOptions.map((option) => ({
+    //   id: option.name,
+    //   value: option.value,
+    // })),
+    options : options,
     availability_status: "active",
   };
 }
 
-function buildSyncPayload(
+async function buildSyncPayload(
   shopifyProduct: ShopifyProductResponse["product"],
   printfulVariants: PrintfulProductCatalogVariant[],
   // printfulVariants: PrintfulProductResponse["result"]["variants"],
@@ -182,6 +194,13 @@ function buildSyncPayload(
     printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
   }>
 ) {
+
+  const syncVariants = await Promise.all(
+    shopifyProduct.variants.nodes.map((variant) =>
+      mapSyncVariant(variant, printfulVariants, edmTemplateId, mockupResults)
+    )
+  );
+
   return {
     sync_product: {
       external_id: shopifyProduct.id,
@@ -190,8 +209,26 @@ function buildSyncPayload(
       is_ignored: false,
       tags: [`edm_template_id_${edmTemplateId}`],
     },
-    sync_variants: shopifyProduct.variants.nodes.map((variant) =>
-      mapSyncVariant(variant, printfulVariants, mockupResults)
-    ),
+    // sync_variants: shopifyProduct.variants.nodes.map((variant) =>
+    //  mapSyncVariant(variant, printfulVariants,edmTemplateId, mockupResults)
+    // ),
+    sync_variants: syncVariants,
   };
+}
+/**
+ * fetch extra option when product techniques is embroidery
+ * @param templateId 
+ * @returns SelectedOption[]
+ */
+async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedOption[]> {
+
+  try {
+    const res = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful//product-templates/${templateId}`);
+    const extraOpt = res.data.result.option_data;
+    console.log("extraDd",JSON.stringify(extraOpt[0],null,2))
+    return extraOpt[0];
+  } catch (error) {
+    // You can customize error handling here
+    throw new Error(`Failed to fetch extra Opt: ${error}`);
+  }
 }

@@ -1,6 +1,7 @@
 export type SelectedOption = {
   name: string;
-  value: string;
+  // value: string;
+  value:  string | string[];
 };
 
 export type Metafield = {

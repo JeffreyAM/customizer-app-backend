@@ -19,6 +19,8 @@ import { selPrice } from "@/utils/sellingPrice";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
+const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
 // split array to chunks
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -37,18 +39,19 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
     if (v.color) colorSet.add(capitalize(v.color));
   });
 
-  const productOptions = [];
+  const productOptions: any[] = [];
+  let position = 1;
   if (sizeSet.size > 0) {
     productOptions.push({
       name: "Size",
-      position: 1,
+      position: position++,
       values: Array.from(sizeSet).map((size) => ({ name: size })),
     });
   }
   if (colorSet.size > 0) {
     productOptions.push({
       name: "Color",
-      position: 2,
+      position: position++,
       values: Array.from(colorSet).map((color) => ({ name: color })),
     });
   }
@@ -250,13 +253,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const printfulProductResponse = await axios.get(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-products/${product_id}`
+      `${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-products/${product_id}`
     );
-
-    const printfulProductVariantsResponse = await axios.get(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-products/${product_id}/catalog-variants?limit=100`
-    );
-
 
     const printfulProductData = printfulProductResponse.data as PrintfulProductCatalogResponse;
     // const { product: printfulProduct, variants: printfulProductVariants } = printfulProductData.result;
@@ -323,14 +321,12 @@ export async function POST(req: NextRequest) {
 }
 
 async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProductCatalogVariant[]> {
-  // Base URL from env (you had product_id but it's not defined here, so removed)
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   const fetchPromises = variantIds.map(async (id) => {
     try {
-      const res = await axios.get(`${baseUrl}/api/printful/v2/catalog-variants/${id}`);
-      const res2 = await axios.get(`${baseUrl}/api/printful/v2/catalog-variants/${id}/availability`);
-      const res3 = await axios.get(`${baseUrl}/api/printful/v2/catalog-variants/${id}/prices`);
+      const res = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}`);
+      const res2 = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}/availability`);
+      const res3 = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}/prices`);
       
       const var1 = res.data.data;
       const var2 = res2.data.data.techniques[0].selling_regions; 

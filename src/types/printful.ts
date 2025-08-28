@@ -127,7 +127,7 @@ export type PrintfulProductCatalogResponse = {
         values: Record<string, string>;
       }>;
     }>;
-    placement_options: any[]; // Still undefined in structure
+    placement_options: any[];
     conflicting_placements: string[];
   }>;
   product_options: Array<{
@@ -147,6 +147,7 @@ export type PrintfulProductCatalogResponse = {
   };
 }
 };
+
 export interface PrintfulProductCatalogVariant {
   id: number;
   catalog_product_id: number;
@@ -173,7 +174,7 @@ export interface PrintfulProductCatalogVariant {
   selling_regions: Array<{
     name: string;
     availability: string;
-    placement_option_availability: any[]; // Or a more specific type if known
+    placement_option_availability: any[];
   }>;
   techniques: Array<{
     technique_key: string;
