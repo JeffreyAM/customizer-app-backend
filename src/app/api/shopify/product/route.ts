@@ -5,6 +5,7 @@ import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
 import { PRODUCT_PUBLISH } from "@/mutations/shopify/productPublish";
 import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
+import { GET_LOCATION } from "@/queries/shopify/getLocation";
 import { GET_PRODUCTS } from "@/queries/shopify/getProducts";
 import {
   PrintfulProductCatalogResponse,
@@ -152,6 +153,7 @@ async function createShopifyProduct(
       vendor: "Customized Girl EDM",
       status: "ACTIVE",
       tags: [`edm_template_id_${edmTemplateId}`],
+      handle: edmTemplateId.toString(),
       productOptions,
     },
     media,
@@ -283,6 +285,9 @@ export async function POST(req: NextRequest) {
     const createdShopifyVariant = shopifyProduct.product.variants.nodes[0];
     const matchingVariant = shopifyVariants[0]; // Assuming the first variant is the one we want to update
 
+    // const res = await client.request(GET_LOCATION);
+
+    // console.log("location shit: ", JSON.stringify(res.data, null, 2))
     const updatedVariant = await bulkVariantOperation(
       client,
       shopifyProduct.product.id,
