@@ -89,6 +89,8 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
         sku: sku,
         tracked: true,
       },
+      inventoryManagement: "SHOPIFY", // ✅ enables tracking
+      inventoryPolicy: "DENY",    
     };
   });
 
