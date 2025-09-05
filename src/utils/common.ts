@@ -38,3 +38,13 @@ export const fetchUserDetails = async (userId: string, setUser: Function) => {
     setUser(null);
   }
 };
+
+/**
+ * Extracts the numeric ID from a Shopify GID string.
+ * Example input: "gid://shopify/ProductVariant/50119401701680"
+ * Output: "50119401701680"
+ */
+export function getNumericId(gid: string): string | null {
+  const match = gid.match(/\d+$/);
+  return match ? match[0] : null;
+}

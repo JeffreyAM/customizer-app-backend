@@ -184,4 +184,65 @@ export interface PrintfulProductCatalogVariant {
   }>;
 }
 
+export type PrintfulSyncVariantResponse = {
+  code: number;
+  result: {
+    sync_variant: {
+      id: number;
+      external_id: string;
+      sync_product_id: number;
+      name: string;
+      synced: boolean;
+      variant_id: number;
+      main_category_id: number;
+      warehouse_product_id: number | null;
+      warehouse_product_variant_id: number | null;
+      retail_price: string;
+      sku: string;
+      currency: string;
+      product: {
+        variant_id: number;
+        product_id: number;
+        image: string;
+        name: string;
+      };
+      files: Array<{
+        id: number;
+        type: string;
+        hash: string;
+        url: string;
+        filename: string;
+        mime_type: string;
+        size: number;
+        width: number;
+        height: number;
+        dpi: number;
+        status: string;
+        created: number;
+        thumbnail_url: string;
+        preview_url: string;
+        visible: boolean;
+        is_temporary: boolean;
+        message: string;
+        stitch_count_tier: number | null;
+      }>;
+      options: any[]; // Could be typed further if known
+      is_ignored: boolean;
+      size: string;
+      color: string;
+      availability_status: string;
+    };
+    sync_product: {
+      id: number;
+      external_id: string;
+      name: string;
+      variants: number;
+      synced: number;
+      thumbnail_url: string;
+      is_ignored: boolean;
+    };
+  };
+  extra: any[];
+};
+
 

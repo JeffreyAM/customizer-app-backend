@@ -1,9 +1,10 @@
 import { GET_PRODUCT } from "@/queries/shopify/getProduct";
-import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, SelectedOption, ShopifyProductResponse } from "@/types";
+import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, PrintfulSyncVariantResponse, SelectedOption, ShopifyProductResponse } from "@/types";
 import axios from "axios";
 import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
 import { GraphQLClientResponse } from "@shopify/shopify-api";
+import { getNumericId } from "@/utils/common";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
@@ -65,22 +66,45 @@ export async function syncShopifyProductToPrintful(
       throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
     }
 
-    const payload = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
+    const result = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
 
-    console.log("Payload request:", JSON.stringify(payload, null, 2));
+    const variants = result.sync_variants;
 
-    const response = await axios.post<PrintfulProductSyncResponse>(`${PRINTFUL_API_BASE}/store/products`, payload, {
-      headers: {
-        Authorization: `Bearer ${PRINTFUL_API_KEY}`,
-        "Content-Type": "application/json",
-        "X-PF-Store-Id": STORE_ID.toString(),
-      },
-    });
+    let response = null;
 
-    if (response.status !== 200) {
-      throw new Error("Failed to sync product with Printful: " + JSON.stringify(response.data));
+    for (const variant of variants) {
+
+      response = await axios.put<PrintfulSyncVariantResponse>(
+        `${PRINTFUL_API_BASE}/sync/variant/@${getNumericId(variant.external_id)}`,
+        variant,
+        {
+          headers: {
+            Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+            "Content-Type": "application/json",
+            "X-PF-Store-Id": STORE_ID.toString(),
+          },
+        }
+      );
+
+      // Optionally log or use the response
+      console.log('Updated variant:', response.data);
     }
 
+
+    // console.log("Payload request:", JSON.stringify(payload, null, 2));
+
+    // const response = await axios.post<PrintfulProductSyncResponse>(`${PRINTFUL_API_BASE}/store/products`, payload, {
+    //   headers: {
+    //     Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+    //     "Content-Type": "application/json",
+    //     "X-PF-Store-Id": STORE_ID.toString(),
+    //   },
+    // });
+
+    if (!response || response.status !== 200) {
+      // throw new Error("Failed to sync product with Printful: " + JSON.stringify(response.data));
+      throw new Error("Failed to sync product with Printful: ");
+    }
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -224,19 +248,20 @@ async function buildSyncPayload(
     )
   );
 
-  return {
-    sync_product: {
-      external_id: shopifyProduct.id,
-      name: shopifyProduct.title,
-      thumbnail: shopifyProduct.media?.nodes?.[0]?.preview?.image?.url || "",
-      is_ignored: false,
-      tags: [`edm_template_id_${edmTemplateId}`],
-    },
-    // sync_variants: shopifyProduct.variants.nodes.map((variant) =>
-    //  mapSyncVariant(variant, printfulVariants,edmTemplateId, mockupResults)
-    // ),
-    sync_variants: syncVariants,
-  };
+  // return {
+  //   sync_product: {
+  //     external_id: shopifyProduct.id,
+  //     name: shopifyProduct.title,
+  //     thumbnail: shopifyProduct.media?.nodes?.[0]?.preview?.image?.url || "",
+  //     is_ignored: false,
+  //     tags: [`edm_template_id_${edmTemplateId}`],
+  //   },
+  //   // sync_variants: shopifyProduct.variants.nodes.map((variant) =>
+  //   //  mapSyncVariant(variant, printfulVariants,edmTemplateId, mockupResults)
+  //   // ),
+  //   sync_variants: syncVariants,
+  // };
+  return {sync_variants: syncVariants}
 }
 /**
  * fetch extra option when product techniques is embroidery
