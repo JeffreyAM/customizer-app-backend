@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
       availablePrintfulProductVariants,
       shopifyProduct.product.id
     ).catch((err) => console.error("Background sync error:", err));
-
+    //deley 5 secs here
     return NextResponse.json({ productCreate: shopifyProduct }, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);

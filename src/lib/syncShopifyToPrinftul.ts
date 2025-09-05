@@ -278,16 +278,10 @@ async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateRe
     
     while (attempt < MAX_RETRIES && !success) {
       try {
-        response = await axios.put<PrintfulSyncVariantResponse>(
-          `${PRINTFUL_API_BASE}/sync/variant/@${getNumericId(variant.external_id)}`,
-          variant,
-          {
-            headers: {
-              Authorization: `Bearer ${PRINTFUL_API_KEY}`,
-              "Content-Type": "application/json",
-              "X-PF-Store-Id": STORE_ID.toString(),
-            },
-          }
+        
+        response = await axios.put(
+          `${NEXT_PUBLIC_BASE_URL}/api/printful//sync/variant/@${getNumericId(variant.external_id)}`,
+          variant
         );
 
         // Success - log and break out of retry loop
