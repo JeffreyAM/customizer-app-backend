@@ -265,7 +265,7 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
 }
 
 async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 10;
   const NOT_FOUND_RETRY_DELAY = 5000; // 5 seconds for not found
   
   const results: VariantUpdateResult[] = [];
