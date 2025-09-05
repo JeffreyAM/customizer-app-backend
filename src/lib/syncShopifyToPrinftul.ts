@@ -1,10 +1,10 @@
 import { GET_PRODUCT } from "@/queries/shopify/getProduct";
-import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, PrintfulSyncVariantResponse, SelectedOption, ShopifyProductResponse } from "@/types";
+import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, PrintfulSyncVariantResponse, SelectedOption, ShopifyProductResponse, VariantUpdateResult } from "@/types";
 import axios from "axios";
 import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
 import { GraphQLClientResponse } from "@shopify/shopify-api";
-import { getNumericId } from "@/utils/common";
+import { delay, getNumericId } from "@/utils/common";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
@@ -69,26 +69,9 @@ export async function syncShopifyProductToPrintful(
     const result = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
 
     const variants = result.sync_variants;
+    console.log("variants sync: ",JSON.stringify(variants,null,2))
 
-    let response = null;
-
-    for (const variant of variants) {
-
-      response = await axios.put<PrintfulSyncVariantResponse>(
-        `${PRINTFUL_API_BASE}/sync/variant/@${getNumericId(variant.external_id)}`,
-        variant,
-        {
-          headers: {
-            Authorization: `Bearer ${PRINTFUL_API_KEY}`,
-            "Content-Type": "application/json",
-            "X-PF-Store-Id": STORE_ID.toString(),
-          },
-        }
-      );
-
-      // Optionally log or use the response
-      console.log('Updated variant:', response.data);
-    }
+    const response = await updateVariantsWithRetry(variants);
 
 
     // console.log("Payload request:", JSON.stringify(payload, null, 2));
@@ -101,11 +84,11 @@ export async function syncShopifyProductToPrintful(
     //   },
     // });
 
-    if (!response || response.status !== 200) {
+    if (!response || !response[0].success) {
       // throw new Error("Failed to sync product with Printful: " + JSON.stringify(response.data));
       throw new Error("Failed to sync product with Printful: ");
     }
-    return response.data;
+    return response[0].response?.result;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error("Failed to sync product with Printful: " + JSON.stringify(error.response?.data));
@@ -279,4 +262,88 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
     // You can customize error handling here
     throw new Error(`Failed to fetch extra Opt: ${error}`);
   }
+}
+
+async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
+  const MAX_RETRIES = 3;
+  const NOT_FOUND_RETRY_DELAY = 5000; // 5 seconds for not found
+  
+  const results: VariantUpdateResult[] = [];
+
+  for (const variant of variants) {
+    let attempt = 0;
+    let success = false;
+    let response: any;
+    let lastError: string = '';
+    
+    while (attempt < MAX_RETRIES && !success) {
+      try {
+        response = await axios.put<PrintfulSyncVariantResponse>(
+          `${PRINTFUL_API_BASE}/sync/variant/@${getNumericId(variant.external_id)}`,
+          variant,
+          {
+            headers: {
+              Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+              "Content-Type": "application/json",
+              "X-PF-Store-Id": STORE_ID.toString(),
+            },
+          }
+        );
+
+        // Success - log and break out of retry loop
+        console.log('Updated variant:', response.data);
+        success = true;
+        
+      } catch (error) {
+        attempt++;
+        
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status;
+          const errorMessage = error.response?.data?.error?.message || error.message;
+          lastError = `${status}: ${errorMessage}`;
+          
+          // Only handle 404 errors with retries
+          if (status === 404) {
+            console.log(`Variant not found (attempt ${attempt}/${MAX_RETRIES}): ${variant.external_id}`);
+            
+            if (attempt < MAX_RETRIES) {
+              console.log(`Retrying in ${NOT_FOUND_RETRY_DELAY}ms... (variant might still be syncing)`);
+              await delay(NOT_FOUND_RETRY_DELAY);
+            } else {
+              console.error(`Variant not found after ${MAX_RETRIES} attempts: ${variant.external_id}`);
+              break;
+            }
+          } else {
+            // All other errors - don't retry, just fail immediately
+            console.error(`Error ${status}: ${errorMessage} - ${variant.external_id}`);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Add result for this variant
+    results.push({
+      variant,
+      success,
+      response: success ? response.data : undefined,
+      error: success ? undefined : lastError,
+      attempts: attempt
+    });
+  }
+  
+  // Log summary
+  const successful = results.filter(r => r.success).length;
+  const failed = results.filter(r => !r.success).length;
+  
+  console.log(`📊 Variant update summary: ${successful} successful, ${failed} failed out of ${variants.length} total`);
+  
+  if (failed > 0) {
+    console.log('Failed variants:');
+    results.filter(r => !r.success).forEach(r => {
+      console.log(`  - ${r.variant.external_id}: ${r.error} (${r.attempts} attempts)`);
+    });
+  }
+  
+  return results;
 }

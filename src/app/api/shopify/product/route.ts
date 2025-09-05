@@ -311,7 +311,6 @@ export async function POST(req: NextRequest) {
     if (shopifyProduct.product.id) {
       await publishShopifyProduct(shopifyProduct.product.id);
     }
-    await delay(5000);
     // Run printful product
     await syncShopifyProductToPrintful(
       client,
@@ -357,6 +356,3 @@ async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProduct
 
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}

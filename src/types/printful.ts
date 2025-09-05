@@ -245,4 +245,13 @@ export type PrintfulSyncVariantResponse = {
   extra: any[];
 };
 
+export interface VariantUpdateResult {
+  variant: any;
+  success: boolean;
+  response?: PrintfulSyncVariantResponse;
+  error?: string;
+  attempts: number;
+}
+
+
 
