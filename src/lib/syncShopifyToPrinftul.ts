@@ -140,19 +140,23 @@ function getPrintfulVariantIdFromShopifyVariantMetaFields(
   return null;
 }
 
-function getPrintFilesForVariant(
+async function getPrintFilesForVariant(
+  edmTemplateId: number,
   variantId: number | null,
   mockupResults?: Array<{
     printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
   }>
 ) {
   if (!variantId || !mockupResults?.[0]?.printfiles) return [];
+  // added for unlimited color is selected in edm
+  const extraOption: any = await fetchExtraOptionForEmbroidery(edmTemplateId);
 
   return mockupResults[0].printfiles
     .filter((file) => file.variant_ids.includes(variantId))
     .map((file) => ({
       type: file.placement,
       url: file.url,
+      options: extraOption.placement_option_data[0].options
     }));
 }
 
@@ -175,7 +179,7 @@ async function mapSyncVariant(
       id: option.name,
       value: option.value,
     })),
-    ...extraOption,
+    ...extraOption.option_data,
   ];
 
   return {
@@ -184,7 +188,7 @@ async function mapSyncVariant(
     retail_price: shopifyVariant.price,
     is_ignored: false,
     sku: shopifyVariant.sku || "",
-    files: getPrintFilesForVariant(variantId, mockupResults),
+    files: await getPrintFilesForVariant(edmTemplateId,variantId, mockupResults),
     // options: shopifyVariant.selectedOptions.map((option) => ({
     //   id: option.name,
     //   value: option.value,
@@ -255,7 +259,7 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
 
   try {
     const res = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful//product-templates/${templateId}`);
-    const extraOpt = res.data.result.option_data;
+    const extraOpt = res.data.result;
     
     return extraOpt;
   } catch (error) {
