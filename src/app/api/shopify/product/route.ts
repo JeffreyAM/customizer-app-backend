@@ -319,7 +319,7 @@ export async function POST(req: NextRequest) {
       shopifyProduct.product.id
     ).catch((err) => console.error("Background sync error:", err));
     //deley 5 secs here
-    await delay(5000);
+    await delay(10000);
     return NextResponse.json({ productCreate: shopifyProduct }, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
