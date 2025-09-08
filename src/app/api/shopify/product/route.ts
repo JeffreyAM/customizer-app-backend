@@ -15,7 +15,7 @@ import {
   ShopifyProductPublishResponse,
   ShopifyProductsResponse,
 } from "@/types";
-import { capitalize } from "@/utils/common";
+import { capitalize, delay } from "@/utils/common";
 import { selPrice } from "@/utils/sellingPrice";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
@@ -319,6 +319,7 @@ export async function POST(req: NextRequest) {
       shopifyProduct.product.id
     ).catch((err) => console.error("Background sync error:", err));
     //deley 5 secs here
+    await delay(5000);
     return NextResponse.json({ productCreate: shopifyProduct }, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
