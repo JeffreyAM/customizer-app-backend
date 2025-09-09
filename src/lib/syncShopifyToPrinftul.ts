@@ -140,16 +140,14 @@ function getPrintfulVariantIdFromShopifyVariantMetaFields(
   return null;
 }
 
-async function getPrintFilesForVariant(
-  edmTemplateId: number,
+function getPrintFilesForVariant(
+  extraOption: any,
   variantId: number | null,
   mockupResults?: Array<{
     printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
   }>
 ) {
   if (!variantId || !mockupResults?.[0]?.printfiles) return [];
-  // added for unlimited color is selected in edm
-  const extraOption: any = await fetchExtraOptionForEmbroidery(edmTemplateId);
 
   return mockupResults[0].printfiles
     .filter((file) => file.variant_ids.includes(variantId))
@@ -172,7 +170,6 @@ async function mapSyncVariant(
   const variantId = getPrintfulVariantIdFromShopifyVariantMetaFields(printfulVariants, shopifyVariant.metafields.nodes);
 
   const extraOption: any = await fetchExtraOptionForEmbroidery(edmTemplateId);
-  // const normalizedExtraOptions = extraOption.map(normalizeThreadColorOption);
 
   const options: any = [
     ...shopifyVariant.selectedOptions.map((option) => ({
@@ -188,35 +185,10 @@ async function mapSyncVariant(
     retail_price: shopifyVariant.price,
     is_ignored: false,
     sku: shopifyVariant.sku || "",
-    files: await getPrintFilesForVariant(edmTemplateId,variantId, mockupResults),
-    // options: shopifyVariant.selectedOptions.map((option) => ({
-    //   id: option.name,
-    //   value: option.value,
-    // })),
+    files: getPrintFilesForVariant(extraOption,variantId, mockupResults),
     options : options,
     availability_status: "active",
   };
-}
-
-/**
- * 
- * @param option use this function to prevent error syncing to printful when user selected unlimited
- * for embroidery technique in EDM
- * @returns 
- */
-function normalizeThreadColorOption(option: { id: string; value: string[] }) {
-  const allowedThreadColors = [
-    "#FFFFFF", "#000000", "#96A1A8", "#A67843", "#FFCC00", "#E25C27", "#CC3366",
-    "#CC3333", "#660000", "#333366", "#005397", "#3399FF", "#6B5294", "#01784E", "#7BA35A"
-  ];
-  if (option.id.startsWith("thread_colors_") && Array.isArray(option.value) && option.value.length === 0) {
-    // Assume "unlimited colors" selected, replace with all allowed
-    return {
-      ...option,
-      value: allowedThreadColors,
-    };
-  }
-  return option;
 }
 
 async function buildSyncPayload(
@@ -280,6 +252,7 @@ async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateRe
     let response: any;
     let lastError: string = '';
     
+    console.log("VarPayload",JSON.stringify(variant, null, 2))
     while (attempt < MAX_RETRIES && !success) {
       try {
         
@@ -334,7 +307,7 @@ async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateRe
   const successful = results.filter(r => r.success).length;
   const failed = results.filter(r => !r.success).length;
   
-  console.log(`📊 Variant update summary: ${successful} successful, ${failed} failed out of ${variants.length} total`);
+  console.log(`Variant update summary: ${successful} successful, ${failed} failed out of ${variants.length} total`);
   
   if (failed > 0) {
     console.log('Failed variants:');
