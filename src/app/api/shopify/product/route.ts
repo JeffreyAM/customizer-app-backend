@@ -5,7 +5,9 @@ import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
 import { PRODUCT_PUBLISH } from "@/mutations/shopify/productPublish";
 import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
+import { GET_CUSTOMER_PRODUCTS } from "@/queries/shopify/getCustomerProducts";
 import { GET_LOCATION } from "@/queries/shopify/getLocation";
+import { GET_PRODUCT } from "@/queries/shopify/getProduct";
 import { GET_PRODUCTS } from "@/queries/shopify/getProducts";
 import {
   PrintfulProductCatalogResponse,
@@ -88,9 +90,7 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
       inventoryItem: {
         sku: sku,
         tracked: true,
-      },
-      // inventoryManagement: "SHOPIFY", // ✅ enables tracking
-      // inventoryPolicy: "DENY",    
+      },   
     };
   });
 
@@ -134,7 +134,8 @@ async function createShopifyProduct(
   images: string[],
   edmTemplateId: string,
   // productData: PrintfulProductResponse["result"]["product"]
-  productData: PrintfulProductCatalogResponse
+  productData: PrintfulProductCatalogResponse,
+  customerId: string
 ) {
   const media = images.map((url: string, idx: number) => ({
     originalSource: url,
@@ -154,7 +155,7 @@ async function createShopifyProduct(
       descriptionHtml: productData.data.description,
       vendor: "Customized Girl EDM",
       status: "ACTIVE",
-      tags: [`edm_template_id_${edmTemplateId}`],
+      tags: [`edm_template_id_${edmTemplateId}`,`customer_id-${customerId}`],
       handle: edmTemplateId.toString(),
       productOptions,
     },
@@ -233,25 +234,57 @@ async function publishShopifyProduct(productID: string) {
 
 export async function GET(req: NextRequest) {
   try {
+    const productId = req.nextUrl.searchParams.get("product_id");
+    const customerId = req.nextUrl.searchParams.get("customer_id");
+    const endCursor = req.nextUrl.searchParams.get("endCursor");
+
     const shopify = getShopify();
     const session = await getSession();
     const client = new shopify.clients.Graphql({ session });
 
-    const query = GET_PRODUCTS;
-    const response = await client.request<ShopifyProductsResponse>(query);
-    return NextResponse.json({ products: response?.data?.products?.nodes }, { status: 200 });
+    let query;
+    let variables = {};
+    let response;
+
+    if (customerId) {
+      query = GET_CUSTOMER_PRODUCTS;
+      variables = { query: `tag:'${customerId}'`,after: endCursor };
+      response = await client.request(query, {variables});
+      return NextResponse.json({ products: response?.data?.products }, { status: 200 });
+
+    } else if (productId) {
+      query = GET_PRODUCT;
+      variables = { ownerId: `gid://shopify/Product/${productId}` };
+      response = await client.request(query, {variables});
+      return NextResponse.json({ product: response?.data?.product }, { status: 200 });
+
+    } else {
+      query = GET_PRODUCTS;
+      response = await client.request(query,
+        {variables: {
+          after: endCursor,
+        }}
+      );
+      return NextResponse.json({ products: response?.data?.products }, { status: 200 });
+    }
+
   } catch (error) {
-    console.error("Error fetching products:", error);
-    return NextResponse.json({ error: "Server error", details: String(error) }, { status: 500 });
+    console.error("Error fetching product(s):", error);
+    return NextResponse.json(
+      { error: "Server error", details: String(error) },
+      { status: 500 }
+    );
   }
 }
 
+
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { product_id, images, edmTemplateId, availableVariantIds } = body;
+  const { product_id, images, edmTemplateId, availableVariantIds, customerId } = body;
 
   // validate request body
-  if (!product_id || !images || !Array.isArray(images) || !edmTemplateId) {
+  if (!product_id || !images || !Array.isArray(images) || !edmTemplateId || !customerId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -273,7 +306,7 @@ export async function POST(req: NextRequest) {
     const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availablePrintfulProductVariants,edmTemplateId);
 
     // const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
-    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProductData);
+    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProductData,customerId);
 
     if (!shopifyProduct) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });

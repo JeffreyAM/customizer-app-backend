@@ -2,7 +2,11 @@ import { supabase } from "@/lib/supabase";
 import { NextRequest, NextResponse } from 'next/server';
 import type { NextApiRequest } from 'next';
 
-// /api/mockup-task/[id]/route.ts
+//api/printful/template/[id]/route.ts
+/**
+ * @templateId
+ *  fetch template data in the backend database
+ */
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(req: NextRequest, context: RouteContext) {

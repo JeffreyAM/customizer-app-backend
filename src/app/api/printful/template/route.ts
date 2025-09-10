@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Create or get user ID - this MUST succeed if user data is provided
     let userId = null;
-    if (user && user.name && user.email) {
+    if (user && user.name && user.email && user.customerId) {
       try {
         userId = await createOrGetUser(user);
         if (!userId) {
@@ -229,7 +229,7 @@ async function updateMockupUrlInBackground(templateId: string, apiKey: string, m
 
 // Helper function to create or get user
 async function createOrGetUser(user: any): Promise<string | null> {
-  if (!user || !user.name || !user.email) {
+  if (!user || !user.name || !user.email || !user.customerId) {
     return null;
   }
 
@@ -238,7 +238,7 @@ async function createOrGetUser(user: any): Promise<string | null> {
     const { data: existingUser, error: checkError } = await supabase
       .from("users")
       .select("id")
-      .eq("email", user.email)
+      .eq("shopify_customer_id", user.customerId)
       .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors when no rows found
 
     if (checkError) {
