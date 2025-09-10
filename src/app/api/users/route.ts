@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 /**
  * @openapi
- * /api/users/{id}:
+ * /api/users?customer_id:
  *   get:
- *     summary: Get a user by ID who has created an EDM design template
+ *     summary: Get a users by using shopify customer id
  *     tags: ["Internal"]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: customerId
  *         required: true
  *         schema:
  *           type: string
@@ -23,25 +24,28 @@ import { supabase } from '@/lib/supabase';
  */
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  req: NextRequest
 ) {
   try {
-    const { id: userId } = await params;
+    const { searchParams } = new URL(req.url);
+    const customerId = searchParams.get('customer_id');
 
-    if (!userId) {
+    if (!customerId) {
       return NextResponse.json(
-        { error: 'User ID is required' },
+        { error: 'Customer ID is required' },
         { status: 400 }
       );
     }
 
     // Fetch user details from Supabase
-    const { data: user, error } = await supabase
+    let query = supabase
       .from('users')
       .select('id, name, email,shopify_customer_id, created_at')
-      .eq('id', userId)
+      .eq('shopify_customer_id', customerId)
       .single();
+    
+    const { data: user, error } = await query;
+      
 
     if (error) {
       console.error('Error fetching user:', error);
