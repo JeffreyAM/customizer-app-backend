@@ -28,11 +28,34 @@
 --   CONSTRAINT users_pkey PRIMARY KEY (id)
 -- );
 
--- CREATE TABLE mockup_tasks (
---   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
---   task_key text NOT NULL,
---   created_at timestamp with time zone DEFAULT timezone('utc', now())
--- );
+-- create table public.mockup_tasks (
+--   id uuid not null default gen_random_uuid (),
+--   task_key text not null,
+--   template_id uuid null,
+--   created_at timestamp with time zone null default now(),
+--   status public.Mockup Task Status null default 'pending'::"Mockup Task Status",
+--   completed_at timestamp with time zone null,
+--   constraint mockup_tasks_pkey primary key (id),
+--   constraint mockup_tasks_template_id_fkey foreign KEY (template_id) references templates (id)
+-- ) TABLESPACE pg_default;
 
-ALTER TABLE public.users ADD COLUMN shopify_customer_id TEXT;
+-- ALTER TABLE public.users ADD COLUMN shopify_customer_id TEXT;
+
+-- ALTER TABLE public.templates
+-- DROP CONSTRAINT templates_user_id_fkey1;
+
+-- ALTER TABLE public.templates
+-- ADD CONSTRAINT templates_user_id_fkey1
+-- FOREIGN KEY (user_id)
+-- REFERENCES users(id)
+-- ON DELETE CASCADE;
+
+-- ALTER TABLE public.mockup_tasks
+-- DROP CONSTRAINT mockup_tasks_template_id_fkey;
+
+-- ALTER TABLE public.mockup_tasks
+-- ADD CONSTRAINT mockup_tasks_template_id_fkey
+-- FOREIGN KEY (template_id)
+-- REFERENCES templates(id)
+-- ON DELETE CASCADE;
 
