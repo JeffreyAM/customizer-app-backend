@@ -28,10 +28,11 @@
 --   CONSTRAINT users_pkey PRIMARY KEY (id)
 -- );
 
-CREATE TABLE mockup_tasks (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_key text NOT NULL,
-  created_at timestamp with time zone DEFAULT timezone('utc', now())
-);
+-- CREATE TABLE mockup_tasks (
+--   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--   task_key text NOT NULL,
+--   created_at timestamp with time zone DEFAULT timezone('utc', now())
+-- );
 
+ALTER TABLE public.users ADD COLUMN shopify_customer_id TEXT;
 
