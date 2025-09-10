@@ -1,6 +1,6 @@
-export const GET_PRODUCTS = `
-  query GetProducts($after: String) {
-    products(first: 10, after: $after) {
+export const GET_CUSTOMER_PRODUCTS = `
+  query GetProducts($query: String!, $after: String) {
+    products(first: 10, query: $query, after: $after) {
       edges {
         cursor
         node {
@@ -9,20 +9,20 @@ export const GET_PRODUCTS = `
           tags
           handle
           metafields(first: 3) {
-            nodes {
+            nodes { 
               namespace
               key
-              value
+              value 
             }
           }
           variantsCount {
             count
           }
           variants(first: 10) {
-            nodes {
+            nodes { 
               id
               title
-              price
+              price 
               barcode
               selectedOptions {
                 name
@@ -36,7 +36,7 @@ export const GET_PRODUCTS = `
                   value
                 }
               }
-            }
+            } 
           }
           mediaCount {
             count

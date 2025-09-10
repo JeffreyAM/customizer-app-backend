@@ -3,6 +3,8 @@ export const GET_PRODUCT = `
     product(id: $ownerId) {
       id
       title
+      tags
+      handle
       metafields(first: 3) {
         nodes { 
           namespace
