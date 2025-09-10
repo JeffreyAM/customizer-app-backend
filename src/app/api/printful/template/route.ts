@@ -258,6 +258,7 @@ async function createOrGetUser(user: any): Promise<string | null> {
       .insert({
         name: user.name,
         email: user.email,
+        shopify_customer_id: user.customerId,
         created_at: user.timestamp || new Date().toISOString(),
       })
       .select("id")
