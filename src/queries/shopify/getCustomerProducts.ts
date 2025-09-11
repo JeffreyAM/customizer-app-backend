@@ -1,6 +1,6 @@
 export const GET_CUSTOMER_PRODUCTS = `
-  query GetProducts($query: String!, $after: String) {
-    products(first: 10, query: $query, after: $after) {
+  query GetProducts($query: String!, $after: String, $before: String, $first: Int, $last: Int) {
+    products(query: $query, after: $after, before: $before, first: $first, last: $last) {
       edges {
         cursor
         node {
@@ -57,6 +57,8 @@ export const GET_CUSTOMER_PRODUCTS = `
       }
       pageInfo {
         hasNextPage
+        hasPreviousPage
+        startCursor
         endCursor
       }
     }

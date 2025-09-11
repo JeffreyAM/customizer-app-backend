@@ -191,8 +191,8 @@ async function publishShopifyProduct(productID: string) {
  *     tags: ["External/Shopify"]
  *     parameters:
  *       - in: query
- *         name: product_id
- *         required: true
+ *         name:product_id, customer_id, direction(next,prev), endCursor, startCursor,
+ *         required: false
  *         description: The ID of the product to retrieve
  *         schema:
  *           type: string
@@ -236,7 +236,9 @@ export async function GET(req: NextRequest) {
   try {
     const productId = req.nextUrl.searchParams.get("product_id");
     const customerId = req.nextUrl.searchParams.get("customer_id");
-    const endCursor = req.nextUrl.searchParams.get("endCursor");
+    const after = req.nextUrl.searchParams.get("endCursor");
+    const before = req.nextUrl.searchParams.get("startCursor");
+    let direction = req.nextUrl.searchParams.get("direction");
 
     const shopify = getShopify();
     const session = await getSession();
@@ -246,9 +248,20 @@ export async function GET(req: NextRequest) {
     let variables = {};
     let response;
 
+    const PAGE_SIZE = 10;
+    if(!direction){
+      direction = 'next';
+    }
+
     if (customerId) {
       query = GET_CUSTOMER_PRODUCTS;
-      variables = { query: `tag:'${customerId}'`,after: endCursor };
+      variables = { 
+        query: `tag:'${customerId}'`,
+        first: direction === 'next' ? PAGE_SIZE : null,
+        after: direction === 'next' ? after : null,
+        last: direction === 'prev' ? PAGE_SIZE : null,
+        before: direction === 'prev' ? before : null,
+      };
       response = await client.request(query, {variables});
       return NextResponse.json({ products: response?.data?.products }, { status: 200 });
 
@@ -262,7 +275,10 @@ export async function GET(req: NextRequest) {
       query = GET_PRODUCTS;
       response = await client.request(query,
         {variables: {
-          after: endCursor,
+          first: direction === 'next' ? PAGE_SIZE : null,
+          after: direction === 'next' ? after : null,
+          last: direction === 'prev' ? PAGE_SIZE : null,
+          before: direction === 'prev' ? before : null,
         }}
       );
       return NextResponse.json({ products: response?.data?.products }, { status: 200 });
