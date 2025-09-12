@@ -191,7 +191,12 @@ async function publishShopifyProduct(productID: string) {
  *     tags: ["External/Shopify"]
  *     parameters:
  *       - in: query
- *         name:product_id, customer_id, direction(next,prev), endCursor, startCursor,
+ *         name:
+ *           - product_id
+ *           - customer_id
+ *           - direction: [next, prev]
+ *           - endCursor
+ *           - startCursor
  *         required: false
  *         description: The ID of the product to retrieve
  *         schema:
@@ -404,7 +409,7 @@ async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProduct
 
 }
 
-export async function updateMyDesign(customerId: string) {
+async function updateMyDesign(customerId: string) {
   try {
     const res = await axios.post(
       `${NEXT_PUBLIC_BASE_URL}/api/shopify/customer/myDesign/${customerId}`
