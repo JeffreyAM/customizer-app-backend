@@ -4,18 +4,20 @@ import axios from 'axios';
 const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 /**
- * @openapi
- * combination parameters use 
- * customer_id and templateId for checking if user access this template is allowed
- * customer_id fetch template data using shopify customer id
- * userId fetch template data using backend userId
+ * @openapi 
  * /api/templates:
  *   get:
  *     summary: Get a list of templates
  *     tags: ["Internal"]
+ *     description: >
+ *       Use either `customer_id` (Shopify customer id) or `userId` (backend user id)
+ *       to fetch template data and check if access is allowed.
  *     parameters:
  *       - in: query
- *         name: userId, customer_id , templateId
+ *         name: 
+ *           - userId
+ *           - customer_id
+ *           - templateId
  *         required: false
  *         schema:
  *           type: string
