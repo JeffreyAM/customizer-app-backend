@@ -358,7 +358,8 @@ export async function POST(req: NextRequest) {
       const variantsToCreate = shopifyVariants.slice(1); // Skip the first variant as it's already created
       await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
     }
-
+    
+    await updateMyDesign(customerId).catch((err) => console.error("Update My Design Metafields on Background:", err));
     // Publish the product to default "Online Store" if created successfully
     if (shopifyProduct.product.id) {
       await publishShopifyProduct(shopifyProduct.product.id);
