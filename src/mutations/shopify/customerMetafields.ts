@@ -1,0 +1,17 @@
+
+export const CUSTOMER_METAFIELDS = `
+  mutation SetCustomerMetafields($metafields: [MetafieldsSetInput!]!) {
+    metafieldsSet(metafields: $metafields) {
+      metafields {
+        id
+        namespace
+        key
+        value
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;

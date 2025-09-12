@@ -293,8 +293,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-
-
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { product_id, images, edmTemplateId, availableVariantIds, customerId } = body;
@@ -404,5 +402,18 @@ async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProduct
 
   return variants;
 
+}
+
+export async function updateMyDesign(customerId: string) {
+  try {
+    const res = await axios.post(
+      `${NEXT_PUBLIC_BASE_URL}/api/shopify/customer/myDesign/${customerId}`
+    );
+    console.log("Updated My Design Metafields");
+    return res.data; // return API response
+  } catch (error: any) {
+    console.error("Error updating design:", error.response?.data || error.message);
+    throw error; // rethrow so caller can handle it
+  }
 }
 
