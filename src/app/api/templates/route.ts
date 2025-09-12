@@ -48,12 +48,12 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    if (!user_id && !customerId) {
-      return NextResponse.json(
-        { error: 'User ID or Customer ID is required' },
-        { status: 400 }
-      );
-    }
+    // if (!user_id && !customerId) {
+    //   return NextResponse.json(
+    //     { error: 'User ID or Customer ID is required' },
+    //     { status: 400 }
+    //   );
+    // }
     if (user_id) {
       userId = user_id;
     }

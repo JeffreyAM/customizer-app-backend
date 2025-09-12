@@ -339,9 +339,6 @@ export async function POST(req: NextRequest) {
     const createdShopifyVariant = shopifyProduct.product.variants.nodes[0];
     const matchingVariant = shopifyVariants[0]; // Assuming the first variant is the one we want to update
 
-    // const res = await client.request(GET_LOCATION);
-
-    // console.log("location shit: ", JSON.stringify(res.data, null, 2))
     const updatedVariant = await bulkVariantOperation(
       client,
       shopifyProduct.product.id,
@@ -358,8 +355,9 @@ export async function POST(req: NextRequest) {
       const variantsToCreate = shopifyVariants.slice(1); // Skip the first variant as it's already created
       await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
     }
-    
-    await updateMyDesign(customerId).catch((err) => console.error("Update My Design Metafields on Background:", err));
+
+    // update mydesig metafields
+    await updateMyDesign(customerId,edmTemplateId).catch((err) => console.error("Update My Design Metafields on Background Failed:", err));
     // Publish the product to default "Online Store" if created successfully
     if (shopifyProduct.product.id) {
       await publishShopifyProduct(shopifyProduct.product.id);
@@ -410,16 +408,19 @@ async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProduct
 
 }
 
-async function updateMyDesign(customerId: string) {
+async function updateMyDesign(customerId: string, newTemplateId: string) {
   try {
+    const payload = { templateId: newTemplateId };
+
     const res = await axios.post(
-      `${NEXT_PUBLIC_BASE_URL}/api/shopify/customer/myDesign/${customerId}`
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/shopify/customer/myDesign/${customerId}`,
+      payload
     );
+
     console.log("Updated My Design Metafields");
-    return res.data; // return API response
+    return res.data; 
   } catch (error: any) {
     console.error("Error updating design:", error.response?.data || error.message);
-    throw error; // rethrow so caller can handle it
+    throw error; 
   }
 }
-

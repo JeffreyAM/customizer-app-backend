@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
 import { CUSTOMER_METAFIELDS } from "@/mutations/shopify/customerMetafields";
+import { checkBody } from "@/utils/payload";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,9 +15,20 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
+    const body = await checkBody(req);
+
+    if (body instanceof NextResponse) {
+      return body;
+    }
+
+    const { templateId } = body;
+    if (!templateId) {
+      return NextResponse.json({ error: "Missing TemplateId fields" }, { status: 400 });
+    }
+
     const mutaion = CUSTOMER_METAFIELDS;
 
-    const templates = await fetchAllProductHandles(id);
+    const templates = await fetchAllProductHandles(id,templateId);
 
     // const variables = { id: `gid://shopify/Customer/${id}` };
     const variables = {
@@ -44,8 +56,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 }
 
-async function fetchAllProductHandles(id: string): Promise<string[]> {
+async function fetchAllProductHandles(id: string,newTemplateId:string): Promise<string[]> {
   const allHandles: string[] = [];
+  allHandles.push(String(newTemplateId));
   let hasNextPage = true;
   let afterCursor = null;
 
