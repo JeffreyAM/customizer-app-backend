@@ -60,10 +60,10 @@ async function fetchAllProductHandles(id: string,newTemplateId:string): Promise<
   const allHandles: string[] = [];
   allHandles.push(String(newTemplateId));
   let hasNextPage = true;
-  let afterCursor = null;
+  let endCursor = null;
 
   while (hasNextPage) {
-    const url = `${NEXT_PUBLIC_BASE_URL}/api/shopify/product?customer_id=${id}${afterCursor ? `&after=${afterCursor}` : ''}`;
+    const url = `${NEXT_PUBLIC_BASE_URL}/api/shopify/product?customer_id=${id}${endCursor ? `&endCursor=${endCursor}` : ''}`;
     const res: any = await axios.get(url);
 
     const products = res.data?.products;
@@ -78,7 +78,7 @@ async function fetchAllProductHandles(id: string,newTemplateId:string): Promise<
 
     hasNextPage = products?.pageInfo?.hasNextPage;
     console.log(hasNextPage)
-    afterCursor = products?.pageInfo?.endCursor;
+    endCursor = products?.pageInfo?.endCursor;
   }
 
   return allHandles;
