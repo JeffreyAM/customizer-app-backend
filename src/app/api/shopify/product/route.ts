@@ -335,6 +335,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Shopify error", details: shopifyProduct.userErrors }, { status: 400 });
     }
 
+    // Run printful product
+    await syncShopifyProductToPrintful(
+      client,
+      edmTemplateId,
+      availablePrintfulProductVariants,
+      shopifyProduct.product.id
+    ).catch((err) => console.error("Background sync error:", err));
+
     // Update the first created Shopify variant with correct price
     const createdShopifyVariant = shopifyProduct.product.variants.nodes[0];
     const matchingVariant = shopifyVariants[0]; // Assuming the first variant is the one we want to update
@@ -362,14 +370,6 @@ export async function POST(req: NextRequest) {
     if (shopifyProduct.product.id) {
       await publishShopifyProduct(shopifyProduct.product.id);
     }
-    // Run printful product
-    await syncShopifyProductToPrintful(
-      client,
-      edmTemplateId,
-      availablePrintfulProductVariants,
-      shopifyProduct.product.id
-    ).catch((err) => console.error("Background sync error:", err));
-    
     // await delay(10000);
     return NextResponse.json({ productCreate: shopifyProduct }, { status: 201 });
   } catch (error) {
