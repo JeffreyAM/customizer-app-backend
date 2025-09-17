@@ -1,11 +1,10 @@
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
 import { CUSTOMER_METAFIELDS } from "@/mutations/shopify/customerMetafields";
+import { GET_CUSTOMER_PRODUCT_TEMPLATE } from "@/queries/shopify/getCustomerProductTemplateId";
 import { checkBody } from "@/utils/payload";
-import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
-const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 const shopify = getShopify();
 const session = await getSession();
 const client = new shopify.clients.Graphql({ session });
@@ -56,29 +55,48 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 }
 
-async function fetchAllProductHandles(id: string,newTemplateId:string): Promise<string[]> {
+async function fetchAllProductHandles(id: string, newTemplateId: string): Promise<string[]> {
   const allHandles: string[] = [];
   allHandles.push(String(newTemplateId));
+
   let hasNextPage = true;
-  let endCursor = null;
+  let endCursor: string | null = null;
+
+  const shopify = getShopify();
+  const session = await getSession();
+  const client = new shopify.clients.Graphql({ session });
 
   while (hasNextPage) {
-    const url = `${NEXT_PUBLIC_BASE_URL}/api/shopify/product?customer_id=${id}${endCursor ? `&endCursor=${endCursor}` : ''}`;
-    const res: any = await axios.get(url);
+    const variables: any = { 
+      query: `tag:customer_id-${id}`,
+      first: 250,
+      after: endCursor
+    };
 
-    const products = res.data?.products;
-    const edges = products?.edges;
-
-    edges.forEach((edge: any) => {
-      const handle = edge?.node?.handle;
-      if (handle) {
-        allHandles.push(handle);
+    const response = await client.query<any>({
+      data: {
+        query: GET_CUSTOMER_PRODUCT_TEMPLATE,
+        variables
       }
     });
 
-    hasNextPage = products?.pageInfo?.hasNextPage;
-    console.log(hasNextPage)
-    endCursor = products?.pageInfo?.endCursor;
+    //Defensive checks
+    const products = response?.body?.data?.products;
+    if (!products) {
+      throw new Error("No products returned from Shopify GraphQL API");
+    }
+
+    console.log("Product Handles: ",JSON.stringify(products,null,2));
+
+    const edges = products.edges || [];
+    for (const edge of edges) {
+      if (edge?.node?.handle) {
+        allHandles.push(edge.node.handle);
+      }
+    }
+
+    hasNextPage = products.pageInfo?.hasNextPage ?? false;
+    endCursor = products.pageInfo?.endCursor ?? null;
   }
 
   return allHandles;
