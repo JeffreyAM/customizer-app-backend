@@ -59,3 +59,6 @@
 -- REFERENCES templates(id)
 -- ON DELETE CASCADE;
 
+-- ALTER TABLE public.users
+-- DROP CONSTRAINT users_email_key;
+

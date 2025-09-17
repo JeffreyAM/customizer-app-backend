@@ -5,6 +5,7 @@ import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
 import { GraphQLClientResponse } from "@shopify/shopify-api";
 import { delay, getNumericId } from "@/utils/common";
+import { SET_TEMP_STOCK } from "@/mutations/shopify/temporaryStock";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
@@ -123,6 +124,28 @@ async function fetchAllVariants(
     cursor = variants.pageInfo.endCursor;
   }
 
+  // add temporary stock to prevent sold out issue due to printful sync is in process
+  const changes = allVariants.map((variant) => ({
+    inventoryItemId: variant.inventoryItem.id,
+    locationId: "gid://shopify/Location/105886023984",
+    delta: 1,
+  }));
+
+  if (changes.length > 0) {
+    const temp = await client.request<any>(SET_TEMP_STOCK, {
+      variables: {
+        input: {
+          reason: "correction", 
+          name: "available", 
+          changes,
+        },
+      },
+    });
+
+    console.log("Temp stock adjustment:", JSON.stringify(temp, null, 2));
+  }
+
+  console.log(JSON.stringify(allVariants,null,2));
   return allVariants;
 }
 

@@ -25,17 +25,20 @@ export const GET_PRODUCT = `
           title
           price
           barcode
+          sku
           selectedOptions {
             name
             value
           }
-          sku
           metafields(first: 10) {
             nodes {
               id
               key
               value
             }
+          }
+          inventoryItem {
+            id
           }
         }
       }

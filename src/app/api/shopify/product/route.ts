@@ -301,7 +301,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { product_id, images, edmTemplateId, availableVariantIds, customerId } = body;
-
+  // const customerId = '9095495057712'
   // validate request body
   if (!product_id || !images || !Array.isArray(images) || !edmTemplateId || !customerId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -370,7 +370,7 @@ export async function POST(req: NextRequest) {
       shopifyProduct.product.id
     ).catch((err) => console.error("Background sync error:", err));
     
-    await delay(10000);
+    // await delay(10000);
     return NextResponse.json({ productCreate: shopifyProduct }, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);

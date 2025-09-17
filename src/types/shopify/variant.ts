@@ -10,6 +10,9 @@ export type ShopifyProductVariant = {
   metafields: {
     nodes: Metafield[];
   };
+  inventoryItem:{
+    id: string
+  };
 };
 
 export type ShopifyProductVariantsConnection = {
