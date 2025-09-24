@@ -135,7 +135,8 @@ async function createShopifyProduct(
   edmTemplateId: string,
   // productData: PrintfulProductResponse["result"]["product"]
   productData: PrintfulProductCatalogResponse,
-  customerId: string
+  customerId: string,
+  customDesignName: string
 ) {
   const media = images.map((url: string, idx: number) => ({
     originalSource: url,
@@ -144,13 +145,13 @@ async function createShopifyProduct(
   }));
 
   const mutation = PRODUCT_CREATE;
-
+  const customProductName = customDesignName ?? 'Custom Design';
   const variables = {
     product: {
       collectionsToJoin: [
         "gid://shopify/Collection/490639720752", // Default "Home Page" collection
       ],
-      title: productData.data.name,
+      title: `${customProductName} - ${productData.data.name}`,
       // title: productData.title,
       descriptionHtml: productData.data.description,
       vendor: "Customized Girl EDM",
@@ -300,7 +301,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { product_id, images, edmTemplateId, availableVariantIds, customerId } = body;
+  const { product_id, images, edmTemplateId, availableVariantIds, customerId, customDesignName } = body;
   // const customerId = '9095495057712'
   // validate request body
   if (!product_id || !images || !Array.isArray(images) || !edmTemplateId || !customerId) {
@@ -325,7 +326,7 @@ export async function POST(req: NextRequest) {
     const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availablePrintfulProductVariants,edmTemplateId);
 
     // const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
-    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProductData,customerId);
+    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProductData,customerId,customDesignName);
 
     if (!shopifyProduct) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });
