@@ -38,19 +38,11 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
   const colorSet = new Set<string>();
 
   variants.forEach((v) => {
-    if (v.size) sizeSet.add(capitalize(v.size));
     if (v.color) colorSet.add(capitalize(v.color));
   });
 
   const productOptions: any[] = [];
   let position = 1;
-  if (sizeSet.size > 0) {
-    productOptions.push({
-      name: "Size",
-      position: position++,
-      values: Array.from(sizeSet).map((size) => ({ name: size })),
-    });
-  }
   if (colorSet.size > 0) {
     productOptions.push({
       name: "Color",
@@ -58,20 +50,27 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
       values: Array.from(colorSet).map((color) => ({ name: color })),
     });
   }
+  if (sizeSet.size > 0) {
+    productOptions.push({
+      name: "Size",
+      position: position++,
+      values: Array.from(sizeSet).map((size) => ({ name: size })),
+    });
+  }
 
   const shopifyVariants = variants.map((v) => {
     const optionValues = [];
 
-    if (sizeSet.size > 0) {
-      optionValues.push({
-        optionName: "Size",
-        name: capitalize(v.size || "Default"),
-      });
-    }
     if (colorSet.size > 0) {
       optionValues.push({
         optionName: "Color",
         name: capitalize(v.color || "Default"),
+      });
+    }
+    if (sizeSet.size > 0) {
+      optionValues.push({
+        optionName: "Size",
+        name: capitalize(v.size || "Default"),
       });
     }
     const sku = `${edmTemplateId}_${v.catalog_product_id}_${v.color || "default"}_${v.size || "default"}`.toLowerCase();
