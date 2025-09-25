@@ -87,3 +87,25 @@ export type ShopifyProductPublishResponse = {
     userErrors: UserError[];
   };
 };
+
+export interface ProductVariantAppendMediaResponse {
+  productVariantAppendMedia: {
+    productVariants: {
+      id: string;
+      media: {
+        nodes: {
+          id: string;
+          alt: string | null;
+          mediaContentType: string;
+          image?: {
+            originalSrc: string;
+          };
+        }[];
+      };
+    }[];
+    userErrors: {
+      field: string[] | null;
+      message: string;
+    }[];
+  };
+}

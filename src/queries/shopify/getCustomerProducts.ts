@@ -1,6 +1,6 @@
 export const GET_CUSTOMER_PRODUCTS = `
   query GetProducts($query: String!, $after: String, $before: String, $first: Int, $last: Int) {
-    products(query: $query, after: $after, before: $before, first: $first, last: $last sortKey: CREATED_AT, reverse: true) {
+    products(query: $query, after: $after, before: $before, first: $first, last: $last, sortKey: CREATED_AT, reverse: true) {
       edges {
         cursor
         node {
@@ -35,6 +35,18 @@ export const GET_CUSTOMER_PRODUCTS = `
                   id
                   key
                   value
+                }
+              }
+              media(first: 5) {
+                nodes {
+                  id
+                  alt
+                  preview {
+                    image {
+                      id
+                      url
+                    }
+                  }
                 }
               }
             } 

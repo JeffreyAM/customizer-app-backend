@@ -190,7 +190,8 @@ export default function TemplateModal({
     try {
       const payload = {
         product_id: completeTemplateData?.result?.product_id,
-        images: getMockupImages(),
+        mockups : mockupResult.mockups,
+        // images: getMockupImages(),
         edmTemplateId: completeTemplateData?.result?.id,
         availableVariantIds: completeTemplateData?.result?.available_variant_ids || [],
       };

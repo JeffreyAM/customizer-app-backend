@@ -70,7 +70,7 @@ export async function syncShopifyProductToPrintful(
     const result = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
 
     const variants = result.sync_variants;
-    console.log("variants sync: ",JSON.stringify(variants,null,2))
+    // console.log("variants sync: ",JSON.stringify(variants,null,2))
 
     const response = await updateVariantsWithRetry(variants);
 
@@ -263,6 +263,9 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
   }
 }
 
+/**
+ * sync variants to printful
+ */
 async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
   const MAX_RETRIES = 10;
   const NOT_FOUND_RETRY_DELAY = 5000; // 5 seconds for not found
@@ -275,7 +278,6 @@ async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateRe
     let response: any;
     let lastError: string = '';
     
-    console.log("VarPayload",JSON.stringify(variant, null, 2))
     while (attempt < MAX_RETRIES && !success) {
       try {
         
@@ -284,8 +286,6 @@ async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateRe
           variant
         );
 
-        // Success - log and break out of retry loop
-        console.log('Updated variant:', response.data);
         success = true;
         
       } catch (error) {

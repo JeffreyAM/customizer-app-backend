@@ -1,10 +1,11 @@
 export const GET_PRODUCT = `
-  query ProductMetafields($ownerId: ID!, $variantsAfter: String) {
+  query ProductMetafields($ownerId: ID!, $variantsAfter: String, $mediaAfter: String) {
     product(id: $ownerId) {
       id
       title
       tags
       handle
+
       metafields(first: 3) {
         nodes { 
           namespace
@@ -12,9 +13,11 @@ export const GET_PRODUCT = `
           value 
         }
       }
-      variantsCount{
+
+      variantsCount {
         count
       }
+
       variants(first: 100, after: $variantsAfter) {
         pageInfo {
           hasNextPage
@@ -42,10 +45,16 @@ export const GET_PRODUCT = `
           }
         }
       }
-      mediaCount{
+
+      mediaCount {
         count
       }
-      media(first: 10) {
+
+      media(first: 100, after: $mediaAfter) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
           id
           alt

@@ -86,8 +86,6 @@ async function fetchAllProductHandles(id: string, newTemplateId: string): Promis
       throw new Error("No products returned from Shopify GraphQL API");
     }
 
-    console.log("Product Handles: ",JSON.stringify(products,null,2));
-
     const edges = products.edges || [];
     for (const edge of edges) {
       if (edge?.node?.handle) {

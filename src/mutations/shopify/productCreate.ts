@@ -8,7 +8,21 @@ export const PRODUCT_CREATE = `
         onlineStoreUrl
         tags
         options { name values }
-        variants(first: 10) { nodes { id title price } }
+        variants(first: 10) {
+          nodes {
+            id
+            title
+            price
+            metafields(first: 10) {
+              nodes {
+                id
+                namespace
+                key
+                value
+              }
+            }
+          }
+        }
         media(first: 10) {
           nodes { 
             mediaContentType

@@ -37,3 +37,19 @@ export type UserError = {
   field: string[];
   message: string;
 };
+
+export type ProductVariantAppendMediaInput = {
+  variantId: string;
+  mediaIds: string[];
+};
+
+export type VariantNode = {
+  id: string;
+  barcode: string;
+  metafields: {
+    nodes: {
+      key: string;
+      value: string;
+    }[];
+  };
+};

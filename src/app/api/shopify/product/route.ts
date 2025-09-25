@@ -3,26 +3,34 @@ import { getShopify } from "@/lib/shopify";
 import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
 import { PRODUCT_CREATE } from "@/mutations/shopify/productCreate";
 import { PRODUCT_PUBLISH } from "@/mutations/shopify/productPublish";
+import { PRODUCT_VARIANT_APPEND_MEDIA } from "@/mutations/shopify/productVariantAppendMedia";
 import { PRODUCT_VARIANTS_BULK_CREATE } from "@/mutations/shopify/productVariantsBulkCreate";
 import { PRODUCT_VARIANTS_BULK_UPDATE } from "@/mutations/shopify/productVariantsBulkUpdate";
 import { GET_CUSTOMER_PRODUCTS } from "@/queries/shopify/getCustomerProducts";
-import { GET_LOCATION } from "@/queries/shopify/getLocation";
 import { GET_PRODUCT } from "@/queries/shopify/getProduct";
 import { GET_PRODUCTS } from "@/queries/shopify/getProducts";
 import {
+  MediaNode,
+  Mockup,
+  MockupVariantsImages,
   PrintfulProductCatalogResponse,
   PrintfulProductCatalogVariant,
-  PrintfulProductResponse,
+  ProductVariantAppendMediaInput,
+  ProductVariantAppendMediaResponse,
   ShopifyProductCreateResponse,
   ShopifyProductPublishResponse,
-  ShopifyProductsResponse,
+  VariantNode,
 } from "@/types";
-import { capitalize, delay } from "@/utils/common";
+import { capitalize, delay, getNumericId } from "@/utils/common";
 import { selPrice } from "@/utils/sellingPrice";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
+import { stringify } from "querystring";
 
 const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+const shopify = getShopify();
+const session = await getSession();
+const client = new shopify.clients.Graphql({ session });
 
 // split array to chunks
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -39,6 +47,7 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
 
   variants.forEach((v) => {
     if (v.color) colorSet.add(capitalize(v.color));
+    if (v.size) sizeSet.add(capitalize(v.size));
   });
 
   const productOptions: any[] = [];
@@ -130,27 +139,33 @@ async function bulkVariantOperation(
 async function createShopifyProduct(
   client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
   productOptions: Array<Record<string, any>>,
-  images: string[],
+  MockupVariantsImages: MockupVariantsImages[],
+  // images: string[],
   edmTemplateId: string,
-  // productData: PrintfulProductResponse["result"]["product"]
   productData: PrintfulProductCatalogResponse,
   customerId: string,
-  customDesignName: string
+  customDesignName: string 
 ) {
-  const media = images.map((url: string, idx: number) => ({
-    originalSource: url,
+  
+  // const media = images.map((url: string, idx: number) => ({
+  //   originalSource: url,
+  //   mediaContentType: "IMAGE",
+  //   alt: `Mockup image ${idx + 1}`,
+  // }));
+
+  const media = MockupVariantsImages.map((item: MockupVariantsImages, idx: number) => ({
+    originalSource: item.url,
     mediaContentType: "IMAGE",
-    alt: `Mockup image ${idx + 1}`,
+    alt: `${item.variants}`,
   }));
 
   const mutation = PRODUCT_CREATE;
-  const customProductName = customDesignName ?? 'Custom Design';
   const variables = {
     product: {
       collectionsToJoin: [
         "gid://shopify/Collection/490639720752", // Default "Home Page" collection
       ],
-      title: `${customProductName} - ${productData.data.name}`,
+      title: `${customDesignName ?? 'Custom Design'} - ${productData.data.name}`,
       // title: productData.title,
       descriptionHtml: productData.data.description,
       vendor: "Customized Girl EDM",
@@ -300,10 +315,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { product_id, images, edmTemplateId, availableVariantIds, customerId, customDesignName } = body;
-  // const customerId = '9095495057712'
+  //const { product_id, images, edmTemplateId, availableVariantIds, customerId, customDesignName } = body;
+  const { product_id, mockups, edmTemplateId, availableVariantIds,customerId, customDesignName } = body;
+  // const customerId = '9067849810224'
   // validate request body
-  if (!product_id || !images || !Array.isArray(images) || !edmTemplateId || !customerId) {
+  //  if (!product_id || !images || !Array.isArray(images) || !edmTemplateId || !customerId) {
+  if (!product_id || !mockups || !Array.isArray(mockups) || !edmTemplateId || !customerId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -318,14 +335,12 @@ export async function POST(req: NextRequest) {
     // Get only available variants based on availableVariantIds
     // const availablePrintfulProductVariants = printfulProductVariants.filter((v) => availableVariantIds.includes(v.id));
     const availablePrintfulProductVariants = await fetchVariantsByIds(availableVariantIds);
-    const shopify = getShopify();
-    const session = await getSession();
-    const client = new shopify.clients.Graphql({ session });
 
     const { productOptions, shopifyVariants } = buildProductOptionsAndVariants(availablePrintfulProductVariants,edmTemplateId);
 
     // const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
-    const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProductData,customerId,customDesignName);
+
+    const shopifyProduct = await createShopifyProduct(client, productOptions, extractMockupImages(mockups), edmTemplateId, printfulProductData,customerId,customDesignName);
 
     if (!shopifyProduct) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });
@@ -356,13 +371,15 @@ export async function POST(req: NextRequest) {
       await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
     }
 
+    const payload = await productVariantAppendMedia(shopifyProduct.product.id);
+    
     // update mydesig metafields
     await updateMyDesign(customerId,edmTemplateId).catch((err) => console.error("Update My Design Metafields on Background Failed:", err));
     // Publish the product to default "Online Store" if created successfully
     if (shopifyProduct.product.id) {
       await publishShopifyProduct(shopifyProduct.product.id);
     }
-    
+
     // Run printful product
     await syncShopifyProductToPrintful(
       client,
@@ -424,3 +441,124 @@ async function updateMyDesign(customerId: string, newTemplateId: string) {
     throw error; 
   }
 }
+
+function extractMockupImages(mockups: Mockup[]): MockupVariantsImages[] {
+  const result: MockupVariantsImages[] = [];
+
+  for (const mockup of mockups) {
+    const variantIds = mockup.variant_ids.map(String);
+
+    // Main mockup image: one entry per variant as string
+    for (const variantId of variantIds) {
+      result.push({
+        variants: variantId,
+        url: mockup.mockup_url
+      });
+    }
+
+    // Extra images: one entry per image, listing all variant IDs as a string
+    if (Array.isArray(mockup.extra)) {
+      const joined = variantIds.join(",");
+      for (const extra of mockup.extra) {
+        result.push({
+          variants: `extra ${joined}`,
+          url: extra.url
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+async function productVariantAppendMedia(
+  shopifyProductId: string
+): Promise<{ productId: string; variantMedia: ProductVariantAppendMediaInput[] }[]> {
+  const productId = shopifyProductId;
+  const numericId = getNumericId(productId);
+  const payloads: { productId: string; variantMedia: ProductVariantAppendMediaInput[] }[] = [];
+  const seenPairs = new Set<string>();
+
+  let variantsAfter: string | null = null;
+  let mediaAfter: string | null = null;
+  let allVariants: VariantNode[] = [];
+  let allMedia: MediaNode[] = [];
+
+  let hasMoreVariants = true;
+  let hasMoreMedia = true;
+
+  // Combined pagination loop
+  while (hasMoreVariants || hasMoreMedia) {
+    const res: any = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
+      params: {
+        product_id: numericId,
+        variantsAfter,
+        mediaAfter
+      }
+    });
+
+    const product = res.data.product;
+
+    // Collect variants
+    const variantPage = product.variants;
+    if (variantPage?.nodes?.length) {
+      allVariants.push(...variantPage.nodes);
+    }
+    variantsAfter = variantPage?.pageInfo?.hasNextPage ? variantPage.pageInfo.endCursor : null;
+    hasMoreVariants = !!variantsAfter;
+
+    // Collect media
+    const mediaPage = product.media;
+    if (mediaPage?.nodes?.length) {
+      allMedia.push(...mediaPage.nodes);
+    }
+    mediaAfter = mediaPage?.pageInfo?.hasNextPage ? mediaPage.pageInfo.endCursor : null;
+    hasMoreMedia = !!mediaAfter;
+  }
+
+  // Match media.alt to variant.barcode
+  for (const media of allMedia) {
+    const alt = media.alt?.trim();
+    if (!alt) continue;
+
+    for (const variant of allVariants) {
+      const barcode = variant.barcode?.trim();
+      if (!barcode || alt !== barcode) continue;
+
+      const key = `${variant.id}_${media.id}`;
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+
+      payloads.push({
+        productId,
+        variantMedia: [
+          {
+            variantId: variant.id,
+            mediaIds: [media.id]
+          }
+        ]
+      });
+      const mutation = PRODUCT_VARIANT_APPEND_MEDIA;
+      const variables = {
+        productId : productId,
+        variantMedia: [
+          {
+          variantId: variant.id,
+          mediaIds: [media.id]
+          }
+        ]
+      };
+      const response = await client.request<ProductVariantAppendMediaResponse>(mutation, { variables });
+      const res = response?.data?.productVariantAppendMedia;
+
+      if (res?.userErrors.length) {
+        console.warn("❌ Failed appending media:", res.userErrors.map(e => e.message).join("; "));
+      } else {
+        console.log(`✅ Success: ${res?.productVariants.length} variant(s) updated`);
+      }
+    }
+  }
+
+  return payloads;
+}
+
