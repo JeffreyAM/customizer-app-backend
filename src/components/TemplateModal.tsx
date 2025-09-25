@@ -483,7 +483,8 @@ export default function TemplateModal({
                     }
                       text-white px-4 py-2 rounded-md text-sm font-medium`}
                     onClick={handleCreateShopifyProduct}
-                    disabled={createShopifyProductLoading || isPolling}
+                    // disabled={createShopifyProductLoading || isPolling}
+                    disabled={true}
                   >
                     {createShopifyProductLoading ? "Loading..." : "Create Shopify Product"}
                   </button>

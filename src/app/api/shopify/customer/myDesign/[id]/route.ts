@@ -55,6 +55,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 }
 
+/**
+ * fetch product handle/template to update customer my_design metafield
+ * @param id 
+ * @param newTemplateId 
+ * @returns 
+ */
 async function fetchAllProductHandles(id: string, newTemplateId: string): Promise<string[]> {
   const allHandles: string[] = [];
   allHandles.push(String(newTemplateId));

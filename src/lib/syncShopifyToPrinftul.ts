@@ -5,17 +5,23 @@ import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
 import { GraphQLClientResponse } from "@shopify/shopify-api";
 import { delay, getNumericId } from "@/utils/common";
-import { SET_TEMP_STOCK } from "@/mutations/shopify/temporaryStock";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
 const STORE_ID = process.env.PRINTFUL_STORE_ID!;
 const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
+/**
+ * Main shopify to printful sync process
+ * @param client 
+ * @param edmTemplateId 
+ * @param printfulVariants 
+ * @param shopifyProductID 
+ * @returns 
+ */
 export async function syncShopifyProductToPrintful(
   client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
   edmTemplateId: string,
-  // printfulVariants: PrintfulProductResponse["result"]["variants"],
   printfulVariants: PrintfulProductCatalogVariant[],
   shopifyProductID: string
 ) {
@@ -70,20 +76,8 @@ export async function syncShopifyProductToPrintful(
     const result = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
 
     const variants = result.sync_variants;
-    // console.log("variants sync: ",JSON.stringify(variants,null,2))
 
     const response = await updateVariantsWithRetry(variants);
-
-
-    // console.log("Payload request:", JSON.stringify(payload, null, 2));
-
-    // const response = await axios.post<PrintfulProductSyncResponse>(`${PRINTFUL_API_BASE}/store/products`, payload, {
-    //   headers: {
-    //     Authorization: `Bearer ${PRINTFUL_API_KEY}`,
-    //     "Content-Type": "application/json",
-    //     "X-PF-Store-Id": STORE_ID.toString(),
-    //   },
-    // });
 
     if (!response || !response[0].success) {
       // throw new Error("Failed to sync product with Printful: " + JSON.stringify(response.data));
@@ -99,6 +93,12 @@ export async function syncShopifyProductToPrintful(
   }
 }
 
+/**
+ * get all shopify variants by shopify product id
+ * @param client 
+ * @param shopifyProductID 
+ * @returns 
+ */
 async function fetchAllVariants(
   client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
   shopifyProductID: string
@@ -124,33 +124,11 @@ async function fetchAllVariants(
     cursor = variants.pageInfo.endCursor;
   }
 
-  // add temporary stock to prevent sold out issue due to printful sync is in process
-  // const changes = allVariants.map((variant) => ({
-  //   inventoryItemId: variant.inventoryItem.id,
-  //   locationId: "gid://shopify/Location/105886023984",
-  //   delta: 1,
-  // }));
-
-  // if (changes.length > 0) {
-  //   const temp = await client.request<any>(SET_TEMP_STOCK, {
-  //     variables: {
-  //       input: {
-  //         reason: "correction", 
-  //         name: "available", 
-  //         changes,
-  //       },
-  //     },
-  //   });
-
-  //   console.log("Temp stock adjustment:", JSON.stringify(temp, null, 2));
-  // }
-
-  console.log(JSON.stringify(allVariants,null,2));
   return allVariants;
 }
 
+
 function getPrintfulVariantIdFromShopifyVariantMetaFields(
-  // printfulVariants: PrintfulProductResponse["result"]["variants"],
   printfulVariants: PrintfulProductCatalogVariant[],
   metafields: ShopifyProductResponse["product"]["variants"]["nodes"][number]["metafields"]["nodes"]
 ): number | null {
@@ -183,7 +161,6 @@ function getPrintFilesForVariant(
 
 async function mapSyncVariant(
   shopifyVariant: ShopifyProductResponse["product"]["variants"]["nodes"][number],
-  // printfulVariants: PrintfulProductResponse["result"]["variants"],
   printfulVariants: PrintfulProductCatalogVariant[],
   edmTemplateId: any,
   mockupResults?: Array<{
@@ -213,11 +190,17 @@ async function mapSyncVariant(
     availability_status: "active",
   };
 }
-
+/**
+ * build printful paylod for syncing shopify variant to printful
+ * @param shopifyProduct 
+ * @param printfulVariants 
+ * @param edmTemplateId 
+ * @param mockupResults 
+ * @returns 
+ */
 async function buildSyncPayload(
   shopifyProduct: ShopifyProductResponse["product"],
   printfulVariants: PrintfulProductCatalogVariant[],
-  // printfulVariants: PrintfulProductResponse["result"]["variants"],
   edmTemplateId: string,
   mockupResults?: Array<{
     printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
@@ -230,21 +213,9 @@ async function buildSyncPayload(
     )
   );
 
-  // return {
-  //   sync_product: {
-  //     external_id: shopifyProduct.id,
-  //     name: shopifyProduct.title,
-  //     thumbnail: shopifyProduct.media?.nodes?.[0]?.preview?.image?.url || "",
-  //     is_ignored: false,
-  //     tags: [`edm_template_id_${edmTemplateId}`],
-  //   },
-  //   // sync_variants: shopifyProduct.variants.nodes.map((variant) =>
-  //   //  mapSyncVariant(variant, printfulVariants,edmTemplateId, mockupResults)
-  //   // ),
-  //   sync_variants: syncVariants,
-  // };
   return {sync_variants: syncVariants}
 }
+
 /**
  * fetch extra option when product techniques is embroidery
  * @param templateId 
@@ -258,13 +229,14 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
     
     return extraOpt;
   } catch (error) {
-    // You can customize error handling here
     throw new Error(`Failed to fetch extra Opt: ${error}`);
   }
 }
 
 /**
- * sync variants to printful
+ * syncing shopify product to printful process with variants payload
+ * @param variants 
+ * @returns 
  */
 async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
   const MAX_RETRIES = 10;

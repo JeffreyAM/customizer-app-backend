@@ -315,11 +315,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  //const { product_id, images, edmTemplateId, availableVariantIds, customerId, customDesignName } = body;
   const { product_id, mockups, edmTemplateId, availableVariantIds,customerId, customDesignName } = body;
   // const customerId = '9067849810224'
-  // validate request body
-  //  if (!product_id || !images || !Array.isArray(images) || !edmTemplateId || !customerId) {
   if (!product_id || !mockups || !Array.isArray(mockups) || !edmTemplateId || !customerId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
@@ -395,6 +392,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * get printful variants with price availability that matches the variantIds param
+ * @param variantIds 
+ * @returns 
+ */
 async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProductCatalogVariant[]> {
 
   const fetchPromises = variantIds.map(async (id) => {
@@ -425,6 +427,12 @@ async function fetchVariantsByIds(variantIds: number[]): Promise<PrintfulProduct
 
 }
 
+/**
+ * update shopify customer metafields name my_design
+ * @param customerId 
+ * @param newTemplateId 
+ * @returns 
+ */
 async function updateMyDesign(customerId: string, newTemplateId: string) {
   try {
     const payload = { templateId: newTemplateId };
@@ -442,6 +450,12 @@ async function updateMyDesign(customerId: string, newTemplateId: string) {
   }
 }
 
+/**
+ * extract variants id with corresponding mockup images
+ * use for creating shopify product 
+ * @param mockups 
+ * @returns 
+ */
 function extractMockupImages(mockups: Mockup[]): MockupVariantsImages[] {
   const result: MockupVariantsImages[] = [];
 
@@ -471,6 +485,12 @@ function extractMockupImages(mockups: Mockup[]): MockupVariantsImages[] {
   return result;
 }
 
+/**
+ * appending or assigning images to each variant of newly created 
+ * shopify product
+ * @param shopifyProductId 
+ * @returns 
+ */
 async function productVariantAppendMedia(
   shopifyProductId: string
 ): Promise<{ productId: string; variantMedia: ProductVariantAppendMediaInput[] }[]> {
