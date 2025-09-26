@@ -156,7 +156,10 @@ async function createShopifyProduct(
   const media = MockupVariantsImages.map((item: MockupVariantsImages, idx: number) => ({
     originalSource: item.url,
     mediaContentType: "IMAGE",
-    alt: `${item.variants}`,
+    // alt: `${item.variants}`,
+    alt: item.type === "main"
+    ? item.variants.join(",")
+    : `extra for variants ${item.variants.join(",")}`
   }));
 
   const mutation = PRODUCT_CREATE;
@@ -477,20 +480,19 @@ function extractMockupImages(mockups: Mockup[]): MockupVariantsImages[] {
   for (const mockup of mockups) {
     const variantIds = mockup.variant_ids.map(String);
 
-    // Main mockup image: one entry per variant as string
-    for (const variantId of variantIds) {
-      result.push({
-        variants: variantId,
-        url: mockup.mockup_url
-      });
-    }
+    // Main mockup image: one entry per variant, but grouped under one object
+    result.push({
+      type: "main",
+      variants: variantIds,
+      url: mockup.mockup_url
+    });
 
-    // Extra images: one entry per image, listing all variant IDs as a string
+    // Extra images: one entry per extra image, with all variant IDs
     if (Array.isArray(mockup.extra)) {
-      const joined = variantIds.join(",");
       for (const extra of mockup.extra) {
         result.push({
-          variants: `extra ${joined}`,
+          type: "extra",
+          variants: variantIds,
           url: extra.url
         });
       }
@@ -499,6 +501,7 @@ function extractMockupImages(mockups: Mockup[]): MockupVariantsImages[] {
 
   return result;
 }
+
 
 /**
  * appending or assigning images to each variant of newly created 
@@ -556,11 +559,14 @@ async function productVariantAppendMedia(
   // Match media.alt to variant.barcode
   for (const media of allMedia) {
     const alt = media.alt?.trim();
-    if (!alt) continue;
+    if (!alt || alt.toLowerCase().includes("extra")) continue;
+
+    // Extract variant IDs from alt (comma-separated)
+    const altVariantIds = alt.split(",").map(id => id.trim());
 
     for (const variant of allVariants) {
       const barcode = variant.barcode?.trim();
-      if (!barcode || alt !== barcode) continue;
+      if (!barcode || !altVariantIds.includes(barcode)) continue;
 
       const key = `${variant.id}_${media.id}`;
       if (seenPairs.has(key)) continue;
@@ -589,6 +595,7 @@ async function productVariantAppendMedia(
       }
     }
   }
+
 
   return payloads;
 }
