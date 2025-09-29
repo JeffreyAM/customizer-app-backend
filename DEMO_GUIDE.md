@@ -6,7 +6,7 @@ This guide walks you through testing the full project workflow.
 
 ### Step-by-Step Manual Guide
 
-1. **Go to the Shopify EDM catalog selection page**
+1. **Go to the Shopify EDM catalog selection page but first make sure to login customer account**
 
    - Open: [Shopify Product Catalog Page Website](https://customized-girl-edm.myshopify.com/pages/product-catalog)
    - Select any design on the page and click **Start Customizing**.
@@ -20,8 +20,14 @@ This guide walks you through testing the full project workflow.
 3. **Save the design**
 
    - Click **Save Design**.
-   - Enter an email and a Design Name.
+   - Enter Cutom Product Design Name.
+   - Wait until the saving design finish
+   - minimum of 1 minute depending of how many variants 
+   - the customized product has.
    - Submit the form.
+   - **Automation**
+   - Steps below are automaticaly Executed once save design is clicked.
+   - Kindly disregard steps 4 to 10.
 
 4. **Go to the Customizer Application**
 
