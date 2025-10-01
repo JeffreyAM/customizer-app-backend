@@ -150,7 +150,7 @@ export async function updateMyDesign(customerId: string, newTemplateId: string) 
  * @param mockupResult 
  * @returns 
  */
-export function extractMockupImages(mockupResult: MockupResults): MockupVariantsImages[] {
+export function extractMockupImages(mockupResult: any): MockupVariantsImages[] {
   const result: MockupVariantsImages[] = [];
   const mockups = mockupResult.mockups;
   for (const mockup of mockups) {
