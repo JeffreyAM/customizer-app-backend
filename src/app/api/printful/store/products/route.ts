@@ -3,7 +3,7 @@ import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
 import { supabase } from "@/lib/supabase";
 import axios from "axios";
-import { PrintfulProductCatalogVariant, PrintfulProductResponse } from "@/types";
+import { MockupResults, PrintfulProductCatalogVariant, PrintfulProductResponse } from "@/types";
 import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
 
 /**
@@ -56,8 +56,42 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     const client = new shopify.clients.Graphql({ session });
 
+    const { data: templates, error: templatesError } = await supabase
+      .from("templates")
+      .select("*")
+      .eq("template_id", edmTemplateId)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (templatesError) {
+      throw new Error("Failed to fetch templates: " + JSON.stringify(templatesError));
+    }
+
+    const { data: mockupTasks, error: mockupTasksError } = await supabase
+      .from("mockup_tasks")
+      .select("*")
+      .eq("template_id", templates?.[0]?.id)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (mockupTasksError) {
+      throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupTasksError));
+    }
+
+    const { data: mockupResults, error: mockupResultsError } = await supabase
+      .from("mockup_results")
+      .select("*")
+      .eq("task_key", mockupTasks?.[0]?.task_key)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (mockupResultsError) {
+      throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
+    }
+
+    const mockups: MockupResults = mockupResults?.[0];
     // Sync directly
-    const result = await syncShopifyProductToPrintful(client, edmTemplateId, printfulVariants, shopifyProductID);
+    const result = await syncShopifyProductToPrintful(mockups,edmTemplateId, printfulVariants, shopifyProductID);
 
     return NextResponse.json({ success: true, result });
   } catch (err) {
