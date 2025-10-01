@@ -316,7 +316,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { product_id, mockups, edmTemplateId, availableVariantIds,customerId, customDesignName } = body;
   // const customerId = '9067849810224'
-  if (!product_id || !mockups || !Array.isArray(mockups) || !edmTemplateId || !customerId) {
+  if (!product_id || !mockups || !edmTemplateId || !customerId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
