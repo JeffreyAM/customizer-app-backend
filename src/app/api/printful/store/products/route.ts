@@ -78,18 +78,17 @@ export async function POST(req: NextRequest) {
       throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupTasksError));
     }
 
-    const { data: mockupResults, error: mockupResultsError } = await supabase
+    const { data: latestMockup, error: mockupResultsError } = await supabase
       .from("mockup_results")
       .select("*")
       .eq("task_key", mockupTasks?.[0]?.task_key)
       .order("id", { ascending: false })
-      .limit(1);
+      .limit(1)
+      .maybeSingle(); // returns MockupResults | null
 
     if (mockupResultsError) {
       throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
     }
-
-    const latestMockup = mockupResults?.[0];
 
     if (!latestMockup) {
       throw new Error("No mockup results found for task_key: " + mockupTasks?.[0]?.task_key);
@@ -97,8 +96,13 @@ export async function POST(req: NextRequest) {
 
     const mockups: MockupResults = latestMockup;
 
-    // Sync directly
-    const result = await syncShopifyProductToPrintful(mockups,edmTemplateId, printfulVariants, shopifyProductID);
+    const result = await syncShopifyProductToPrintful(
+      mockups,
+      edmTemplateId,
+      printfulVariants,
+      shopifyProductID
+    );
+
 
     return NextResponse.json({ success: true, result });
   } catch (err) {
