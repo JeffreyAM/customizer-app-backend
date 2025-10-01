@@ -1,10 +1,12 @@
 import { GET_PRODUCT } from "@/queries/shopify/getProduct";
-import { PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, PrintfulSyncVariantResponse, SelectedOption, ShopifyProductResponse, VariantUpdateResult } from "@/types";
+import { MockupResults, PrintfulProductCatalogVariant, PrintfulProductResponse, PrintfulProductSyncResponse, PrintfulSyncVariantResponse, SelectedOption, ShopifyProductResponse, VariantUpdateResult } from "@/types";
 import axios from "axios";
 import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
 import { GraphQLClientResponse } from "@shopify/shopify-api";
-import { delay, getNumericId } from "@/utils/common";
+import { delay, getClient, getNumericId } from "@/utils/common";
+import { getSession } from "./session-utils";
+import { NextResponse } from "next/server";
 
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY!;
 const PRINTFUL_API_BASE = process.env.NEXT_PRINTFUL_BASE_API_URL;
@@ -20,7 +22,8 @@ const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
  * @returns 
  */
 export async function syncShopifyProductToPrintful(
-  client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
+  // client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
+  mockupResults: MockupResults,
   edmTemplateId: string,
   printfulVariants: PrintfulProductCatalogVariant[],
   shopifyProductID: string
@@ -29,6 +32,7 @@ export async function syncShopifyProductToPrintful(
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   try {
+    const client = await getClient();
     const shopifyProductResponse = await client.request<ShopifyProductResponse>(GET_PRODUCT, {
       variables: { ownerId: shopifyProductID },
     });
@@ -38,52 +42,61 @@ export async function syncShopifyProductToPrintful(
     }
     
     const shopifyProduct = shopifyProductResponse.data.product;
-    shopifyProduct.variants.nodes = await fetchAllVariants(client, shopifyProductID); // Fetch all variants
+    shopifyProduct.variants.nodes = await fetchAllVariants(client, shopifyProductID);
 
-    const { data: templates, error: templatesError } = await supabase
-      .from("templates")
-      .select("*")
-      .eq("template_id", edmTemplateId)
-      .order("id", { ascending: false })
-      .limit(1);
+    // const { data: templates, error: templatesError } = await supabase
+    //   .from("templates")
+    //   .select("*")
+    //   .eq("template_id", edmTemplateId)
+    //   .order("id", { ascending: false })
+    //   .limit(1);
 
-    if (templatesError) {
-      throw new Error("Failed to fetch templates: " + JSON.stringify(templatesError));
-    }
+    // if (templatesError) {
+    //   throw new Error("Failed to fetch templates: " + JSON.stringify(templatesError));
+    // }
 
-    const { data: mockupTasks, error: mockupTasksError } = await supabase
-      .from("mockup_tasks")
-      .select("*")
-      .eq("template_id", templates?.[0]?.id)
-      .order("id", { ascending: false })
-      .limit(1);
+    // const { data: mockupTasks, error: mockupTasksError } = await supabase
+    //   .from("mockup_tasks")
+    //   .select("*")
+    //   .eq("template_id", templates?.[0]?.id)
+    //   .order("id", { ascending: false })
+    //   .limit(1);
 
-    if (mockupTasksError) {
-      throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupTasksError));
-    }
+    // if (mockupTasksError) {
+    //   throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupTasksError));
+    // }
 
-    const { data: mockupResults, error: mockupResultsError } = await supabase
-      .from("mockup_results")
-      .select("*")
-      .eq("task_key", mockupTasks?.[0]?.task_key)
-      .order("id", { ascending: false })
-      .limit(1);
+    // const { data: mockupResults, error: mockupResultsError } = await supabase
+    //   .from("mockup_results")
+    //   .select("*")
+    //   .eq("task_key", mockupTasks?.[0]?.task_key)
+    //   .order("id", { ascending: false })
+    //   .limit(1);
 
-    if (mockupResultsError) {
-      throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
-    }
+    // if (mockupResultsError) {
+    //   throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
+    // }
 
     const result = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
 
     const variants = result.sync_variants;
 
-    const response = await updateVariantsWithRetry(variants);
+    const syncProduct = await updateVariantsWithRetry(variants);
 
-    if (!response || !response[0].success) {
-      // throw new Error("Failed to sync product with Printful: " + JSON.stringify(response.data));
-      throw new Error("Failed to sync product with Printful: ");
+    // If no variants or all failed
+    if (!syncProduct || syncProduct.length === 0 || !syncProduct.some(v => v.success)) {
+      throw new Error("Failed to sync product with Printful");
     }
-    return response[0].response?.result;
+
+    return {
+      message: "Variant sync completed",
+      results: syncProduct,
+      summary: {
+        total: syncProduct.length,
+        success: syncProduct.filter(v => v.success).length,
+        failed: syncProduct.filter(v => !v.success).length,
+      },
+    };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error("Failed to sync product with Printful: " + JSON.stringify(error.response?.data));
@@ -144,13 +157,14 @@ function getPrintfulVariantIdFromShopifyVariantMetaFields(
 function getPrintFilesForVariant(
   extraOption: any,
   variantId: number | null,
-  mockupResults?: Array<{
-    printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
-  }>
+  // mockupResults?: Array<{
+  //   printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
+  // }>
+  mockupResults: MockupResults
 ) {
-  if (!variantId || !mockupResults?.[0]?.printfiles) return [];
+  if (!variantId || !mockupResults?.printfiles) return [];
 
-  return mockupResults[0].printfiles
+  return mockupResults.printfiles
     .filter((file) => file.variant_ids.includes(variantId))
     .map((file) => ({
       type: file.placement,
@@ -162,14 +176,13 @@ function getPrintFilesForVariant(
 async function mapSyncVariant(
   shopifyVariant: ShopifyProductResponse["product"]["variants"]["nodes"][number],
   printfulVariants: PrintfulProductCatalogVariant[],
-  edmTemplateId: any,
-  mockupResults?: Array<{
-    printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
-  }>
+  extraOption: any,
+  // mockupResults?: Array<{
+  //   printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
+  // }>
+  mockupResults: MockupResults
 ) {
   const variantId = getPrintfulVariantIdFromShopifyVariantMetaFields(printfulVariants, shopifyVariant.metafields.nodes);
-
-  const extraOption: any = await fetchExtraOptionForEmbroidery(edmTemplateId);
 
   const options: any = [
     ...shopifyVariant.selectedOptions.map((option) => ({
@@ -202,16 +215,17 @@ async function buildSyncPayload(
   shopifyProduct: ShopifyProductResponse["product"],
   printfulVariants: PrintfulProductCatalogVariant[],
   edmTemplateId: string,
-  mockupResults?: Array<{
-    printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
-  }>
-) {
-
-  const syncVariants = await Promise.all(
-    shopifyProduct.variants.nodes.map((variant) =>
-      mapSyncVariant(variant, printfulVariants, edmTemplateId, mockupResults)
-    )
-  );
+  // mockupResults?: Array<{
+  //   printfiles: Array<{ url: string; placement: string; variant_ids: number[] }>;
+  // }>
+  mockupResults: MockupResults
+  ) {
+    const extraOption: any = await fetchExtraOptionForEmbroidery(edmTemplateId);
+    const syncVariants = await Promise.all(
+      shopifyProduct.variants.nodes.map((variant) =>
+        mapSyncVariant(variant, printfulVariants, extraOption, mockupResults)
+      )
+    );
 
   return {sync_variants: syncVariants}
 }

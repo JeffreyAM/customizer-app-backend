@@ -30,7 +30,16 @@ export interface Mockup {
   generator_mockup_id: number;
 }
 
-export interface MockupsResponse {
+export interface Printfile {
+  variant_ids: number[];
+  placement: string;
+  url: string;
+}
+
+export interface MockupResults {
+  task_key: string;
+  status: string;
   mockups: Mockup[];
+  printfiles: Printfile[];
 }
 

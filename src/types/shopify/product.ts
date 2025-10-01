@@ -1,3 +1,4 @@
+import { PrintfulProductCatalogVariant } from "../printful";
 import { MediaNode, MetafieldWithNamespace, PageInfo, UserError } from "./common";
 import { ShopifyProductVariant, ShopifyProductVariantsConnection } from "./variant";
 
@@ -47,6 +48,7 @@ export type ShopifyProductCreateResponse = {
     };
     userErrors: UserError[];
   };
+  availablePrintfulProductVariants: PrintfulProductCatalogVariant[];
 };
 
 /**

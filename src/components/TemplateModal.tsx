@@ -180,45 +180,77 @@ export default function TemplateModal({
     }
   };
 
-  const handleCreateShopifyProduct = async () => {
-    if (!mockupResult) {
-      toast.error("No mockup result available to create Shopify product");
-      return;
+ const handleCreateShopifyProduct = async () => {
+  if (!mockupResult) {
+    toast.error("No mockup result available to create Shopify product");
+    return;
+  }
+
+  setCreateShopifyProductLoading(true);
+
+  try {
+    const payload = {
+      product_id: completeTemplateData?.result?.product_id,
+      mockups: mockupResult,
+      // images: getMockupImages(), // Uncomment if needed
+      edmTemplateId: completeTemplateData?.result?.id,
+      availableVariantIds: completeTemplateData?.result?.available_variant_ids || [],
+    };
+
+    const response = await fetch("/api/shopify/product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data: ShopifyProductCreateResponse = await response.json();
+
+    if (!response.ok || data.productCreate?.userErrors?.length > 0) {
+      const errors = data.productCreate?.userErrors
+        ?.map((err: any) => err.message)
+        .join(", ") || "Unknown error";
+
+      throw new Error(errors);
     }
 
-    setCreateShopifyProductLoading(true);
-    try {
-      const payload = {
-        product_id: completeTemplateData?.result?.product_id,
-        mockups : mockupResult.mockups,
-        // images: getMockupImages(),
-        edmTemplateId: completeTemplateData?.result?.id,
-        availableVariantIds: completeTemplateData?.result?.available_variant_ids || [],
-      };
+    const product = data.productCreate?.product;
 
-      const response = await fetch("/api/shopify/product", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data: ShopifyProductCreateResponse = await response.json();
+    const availablePrintfulProductVariants = data.availablePrintfulProductVariants;
 
-      if (!response.ok || data.productCreate.userErrors.length > 0) {
-        throw new Error(data.productCreate.userErrors.map((err: any) => err.message).join(", ") || "Unknown error");
-      }
-
-      const product = data.productCreate.product;
-      if (product) {
-        toast.success(`Shopify Product created successfully!`);
-      } else {
-        toast.error("Shopify Product creation response is missing product data.");
-      }
-      setCreateShopifyProductLoading(false);
-    } catch (error: any) {
-      toast.error(`Error creating Shopify product: ${error.message}`);
-      setCreateShopifyProductLoading(false);
+    if (!product) {
+      console.warn("Product creation response did not include product data.");
     }
-  };
+
+    const syncPayload = {
+      mockups: mockupResult,
+      // images: getMockupImages(), // Uncomment if needed
+      edmTemplateId: completeTemplateData?.result?.id,
+      availablePrintfulProductVariants: availablePrintfulProductVariants || [],
+      shopifyProduct: data.productCreate,
+    };
+
+    const syncResponse = await fetch("/api/shopify/product/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(syncPayload),
+    });
+
+    if (!syncResponse.ok) {
+      const syncErrorText = await syncResponse.text();
+      console.error("Sync failed:", syncErrorText);
+      toast.error("Shopify product created, but syncing failed.");
+    } else {
+      toast.success("Shopify product created and synced successfully!");
+    }
+  } catch (error: any) {
+    console.error("Error during Shopify product creation/sync:", error);
+    toast.error(`Error creating Shopify product: ${error.message}`);
+  } finally {
+    setCreateShopifyProductLoading(false);
+  }
+};
+
+
 
   const getMockupImages = (): string[] => {
     if (!mockupResult) return [];
