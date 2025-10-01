@@ -89,7 +89,14 @@ export async function POST(req: NextRequest) {
       throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
     }
 
-    const mockups: MockupResults = mockupResults?.[0];
+    const latestMockup = mockupResults?.[0];
+
+    if (!latestMockup) {
+      throw new Error("No mockup results found for task_key: " + mockupTasks?.[0]?.task_key);
+    }
+
+    const mockups: MockupResults = latestMockup;
+
     // Sync directly
     const result = await syncShopifyProductToPrintful(mockups,edmTemplateId, printfulVariants, shopifyProductID);
 
