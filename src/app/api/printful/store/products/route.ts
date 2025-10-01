@@ -96,12 +96,12 @@ export async function POST(req: NextRequest) {
 
     const mockups: MockupResults = latestMockup;
 
-    const result = await syncShopifyProductToPrintful(
-      mockups,
-      edmTemplateId,
-      printfulVariants,
-      shopifyProductID
-    );
+    // const result = await syncShopifyProductToPrintful(
+    //   mockups,
+    //   edmTemplateId,
+    //   printfulVariants,
+    //   shopifyProductID
+    // );
 
 
     return NextResponse.json({ success: true, result });
