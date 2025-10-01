@@ -5,8 +5,8 @@
  * @param baseCost - The base cost of the product
  * @returns Formatted price string like "31.99"
  */
-export function selPrice(baseCost: number): string {
-  const rawPrice = baseCost / 0.4;
+export function selPrice(baseCost: number, margin: number = 0.4): string {
+  const rawPrice = baseCost / (1 - margin);
   const sellingPrice = Math.floor(rawPrice) + 0.99;
   return sellingPrice.toFixed(2);
 }
