@@ -9,7 +9,7 @@ export interface MockupData {
   }[];
 }
 export interface MockupVariantsImages {
-  type: string;
+  type: "main" | "extra";
   variants: string[];
   url: string;
 }

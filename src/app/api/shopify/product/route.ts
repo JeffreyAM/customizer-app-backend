@@ -14,7 +14,7 @@ import {
   ShopifyProductCreateResponse,
   ShopifyProductPublishResponse,
 } from "@/types";
-import { capitalize, delay, extractMockupImages, fetchVariantsByIds, productVariantAppendMedia, updateMyDesign } from "@/utils/common";
+import { capitalize, delay, extractMockupImages, fetchVariantsByIds, getClient, productVariantAppendMedia, updateMyDesign } from "@/utils/common";
 import { selPrice } from "@/utils/sellingPrice";
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
@@ -257,9 +257,7 @@ export async function GET(req: NextRequest) {
     const variantsAfter = req.nextUrl.searchParams.get("variantsAfter");
     let direction = req.nextUrl.searchParams.get("direction");
 
-    const shopify = getShopify();
-    const session = await getSession();
-    const client = new shopify.clients.Graphql({ session });
+    const client = await getClient();
 
     let query;
     let variables = {};
