@@ -366,11 +366,11 @@ export async function POST(req: NextRequest) {
       const variantsToCreate = shopifyVariants.slice(1); // Skip the first variant as it's already created
       await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
     }
-
-    await productVariantAppendMedia(shopifyProduct.product.id);
+    // append image in the background
+    productVariantAppendMedia(shopifyProduct.product.id).catch((err) => console.error("Failed to Append Images:", err));
     
-    // update mydesig metafields
-    await updateMyDesign(customerId,edmTemplateId).catch((err) => console.error("Update My Design Metafields on Background Failed:", err));
+    // update mydesig metafields in the background
+    updateMyDesign(customerId,edmTemplateId).catch((err) => console.error("Update My Design Metafields on Background Failed:", err));
 
     // Publish the product to default "Online Store" if created successfully
     if (shopifyProduct.product.id) {
