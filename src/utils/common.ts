@@ -245,7 +245,7 @@ export async function productVariantAppendMedia(
     }
   }
 
-  const BATCH_SIZE = 10;
+  const BATCH_SIZE = 20;
   let batchInputs: ProductVariantAppendMediaInput[] = [];
 
   for (const media of allMedia) {

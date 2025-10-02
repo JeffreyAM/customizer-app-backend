@@ -35,17 +35,37 @@ export async function GET(req: NextRequest, context: RouteContext) {
   if (!key) {
     return NextResponse.json({ error: "Task key is required" }, { status: 400 });
   }
-  // add this to prevent unwanted polling
+  // Prevent unwanted polling
   pollPrintfulTask(key).catch(console.error);
 
-  const { data, error } = await supabase.from("mockup_tasks").select("*").eq("task_key", key).single();
+  // First query: mockup_tasks
+  const { data: task, error: taskError } = await supabase
+    .from("mockup_tasks")
+    .select("*")
+    .eq("task_key", key)
+    .single();
 
-  if (error) {
-    console.error("Supabase fetch error:", error);
+  if (taskError || !task) {
+    console.error("Supabase fetch error (mockup_tasks):", taskError);
     return NextResponse.json({ error: "Failed to fetch task" }, { status: 500 });
   }
+  // Second query: mockup_results
+  const { data: result, error: resultError } = await supabase
+    .from("mockup_results")
+    .select("mockups, printfiles")
+    .eq("task_key", key)
+    .single();
 
-  return NextResponse.json({ task: data });
+  if (resultError) {
+    console.error("Supabase fetch error (mockup_results):", resultError);
+    return NextResponse.json({ error: "Failed to fetch mockup result" }, { status: 500 });
+  }
+
+  // Combine the two
+  return NextResponse.json({
+    task,
+    mockup_result: result,
+  });
 }
 
 async function pollPrintfulTask(task_key: string) {
