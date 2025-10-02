@@ -38,7 +38,6 @@ export async function GET(req: NextRequest, context: RouteContext) {
   // Prevent unwanted polling
   pollPrintfulTask(key).catch(console.error);
 
-  // First query: mockup_tasks
   const { data: task, error: taskError } = await supabase
     .from("mockup_tasks")
     .select("*")
@@ -49,24 +48,30 @@ export async function GET(req: NextRequest, context: RouteContext) {
     console.error("Supabase fetch error (mockup_tasks):", taskError);
     return NextResponse.json({ error: "Failed to fetch task" }, { status: 500 });
   }
-  // Second query: mockup_results
-  const { data: result, error: resultError } = await supabase
-    .from("mockup_results")
-    .select("mockups, printfiles")
-    .eq("task_key", key)
-    .single();
 
-  if (resultError) {
-    console.error("Supabase fetch error (mockup_results):", resultError);
-    return NextResponse.json({ error: "Failed to fetch mockup result" }, { status: 500 });
+  let mockup_result = null;
+
+  if (task.status === "completed") {
+    const { data: result, error: resultError } = await supabase
+      .from("mockup_results")
+      .select("mockups, printfiles")
+      .eq("task_key", key)
+      .single();
+
+    if (resultError) {
+      console.error("Supabase fetch error (mockup_results):", resultError);
+      return NextResponse.json({ error: "Failed to fetch mockup result" }, { status: 500 });
+    }
+
+    mockup_result = result;
   }
 
-  // Combine the two
   return NextResponse.json({
     task,
-    mockup_result: result,
+    mockup_result,
   });
 }
+
 
 async function pollPrintfulTask(task_key: string) {
   const statusUrl = `${PRINTFUL_API_BASE}/mockup-generator/task?task_key=${task_key}`;
