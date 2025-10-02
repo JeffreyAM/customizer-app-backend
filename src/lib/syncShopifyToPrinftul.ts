@@ -252,78 +252,167 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
  * @param variants 
  * @returns 
  */
-async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
-  const MAX_RETRIES = 10;
-  const NOT_FOUND_RETRY_DELAY = 5000; // 5 seconds for not found
+// async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
+//   const MAX_RETRIES = 10;
+//   const NOT_FOUND_RETRY_DELAY = 5000; // 5 seconds for not found
   
-  const results: VariantUpdateResult[] = [];
+//   const results: VariantUpdateResult[] = [];
 
-  for (const variant of variants) {
-    let attempt = 0;
-    let success = false;
-    let response: any;
-    let lastError: string = '';
+//   for (const variant of variants) {
+//     let attempt = 0;
+//     let success = false;
+//     let response: any;
+//     let lastError: string = '';
     
-    while (attempt < MAX_RETRIES && !success) {
-      try {
+//     while (attempt < MAX_RETRIES && !success) {
+//       try {
         
-        response = await axios.put(
-          `${NEXT_PUBLIC_BASE_URL}/api/printful//sync/variant/@${getNumericId(variant.external_id)}`,
-          variant
-        );
+//         response = await axios.put(
+//           `${NEXT_PUBLIC_BASE_URL}/api/printful//sync/variant/@${getNumericId(variant.external_id)}`,
+//           variant
+//         );
 
-        success = true;
+//         success = true;
         
-      } catch (error) {
-        attempt++;
+//       } catch (error) {
+//         attempt++;
         
-        if (axios.isAxiosError(error)) {
-          const status = error.response?.status;
-          const errorMessage = error.response?.data?.error?.message || error.message;
-          lastError = `${status}: ${errorMessage}`;
+//         if (axios.isAxiosError(error)) {
+//           const status = error.response?.status;
+//           const errorMessage = error.response?.data?.error?.message || error.message;
+//           lastError = `${status}: ${errorMessage}`;
           
-          // Only handle 404 errors with retries
-          if (status === 404) {
-            console.log(`Variant not found (attempt ${attempt}/${MAX_RETRIES}): ${variant.external_id}`);
+//           // Only handle 404 errors with retries
+//           if (status === 404) {
+//             console.log(`Variant not found (attempt ${attempt}/${MAX_RETRIES}): ${variant.external_id}`);
             
-            if (attempt < MAX_RETRIES) {
-              console.log(`Retrying in ${NOT_FOUND_RETRY_DELAY}ms... (variant might still be syncing)`);
-              await delay(NOT_FOUND_RETRY_DELAY);
-            } else {
-              console.error(`Variant not found after ${MAX_RETRIES} attempts: ${variant.external_id}`);
-              break;
-            }
+//             if (attempt < MAX_RETRIES) {
+//               console.log(`Retrying in ${NOT_FOUND_RETRY_DELAY}ms... (variant might still be syncing)`);
+//               await delay(NOT_FOUND_RETRY_DELAY);
+//             } else {
+//               console.error(`Variant not found after ${MAX_RETRIES} attempts: ${variant.external_id}`);
+//               break;
+//             }
+//           } else {
+//             // All other errors - don't retry, just fail immediately
+//             console.error(`Error ${status}: ${errorMessage} - ${variant.external_id}`);
+//             break;
+//           }
+//         }
+//       }
+//     }
+    
+//     // Add result for this variant
+//     results.push({
+//       variant,
+//       success,
+//       response: success ? response.data : undefined,
+//       error: success ? undefined : lastError,
+//       attempts: attempt
+//     });
+//   }
+  
+//   // Log summary
+//   const successful = results.filter(r => r.success).length;
+//   const failed = results.filter(r => !r.success).length;
+  
+//   console.log(`Variant update summary: ${successful} successful, ${failed} failed out of ${variants.length} total`);
+  
+//   if (failed > 0) {
+//     console.log('Failed variants:');
+//     results.filter(r => !r.success).forEach(r => {
+//       console.log(`  - ${r.variant.external_id}: ${r.error} (${r.attempts} attempts)`);
+//     });
+//   }
+  
+//   return results;
+// }
+
+
+// Retry logic per variant
+async function updateVariantWithRetry(variant: any): Promise<VariantUpdateResult> {
+  let attempt = 0;
+  let success = false;
+  let response: any;
+  let lastError = '';
+
+  const MAX_RETRIES = 10;
+  const NOT_FOUND_RETRY_DELAY = 1000; // 5 seconds
+
+
+  while (attempt < MAX_RETRIES && !success) {
+    try {
+      response = await axios.put(
+        `${NEXT_PUBLIC_BASE_URL}/api/printful/sync/variant/@${getNumericId(variant.external_id)}`,
+        variant
+      );
+      success = true;
+    } catch (error) {
+      attempt++;
+
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const errorMessage = error.response?.data?.error?.message || error.message;
+        lastError = `${status}: ${errorMessage}`;
+
+        if (status === 404) {
+          console.log(`Variant 404 (attempt ${attempt}/${MAX_RETRIES}): ${variant.external_id}`);
+          if (attempt < MAX_RETRIES) {
+            await delay(NOT_FOUND_RETRY_DELAY);
           } else {
-            // All other errors - don't retry, just fail immediately
-            console.error(`Error ${status}: ${errorMessage} - ${variant.external_id}`);
+            console.error(`Variant not found after ${MAX_RETRIES} attempts: ${variant.external_id}`);
             break;
           }
+        } else {
+          console.error(`Error ${status}: ${errorMessage} - ${variant.external_id}`);
+          break; // Other errors: don't retry
         }
+      } else {
+        lastError = `Unknown error: ${String(error)}`;
+        break;
       }
     }
-    
-    // Add result for this variant
-    results.push({
-      variant,
-      success,
-      response: success ? response.data : undefined,
-      error: success ? undefined : lastError,
-      attempts: attempt
-    });
   }
-  
-  // Log summary
+
+  return {
+    variant,
+    success,
+    response: success ? response.data : undefined,
+    error: success ? undefined : lastError,
+    attempts: attempt,
+  };
+}
+
+// Main function to process variants in batches
+export async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
+  const results: VariantUpdateResult[] = [];
+   const BATCH_SIZE = 10;
+
+  for (let i = 0; i < variants.length; i += BATCH_SIZE) {
+    const batch = variants.slice(i, i + BATCH_SIZE);
+
+    console.log(`Processing batch ${i / BATCH_SIZE + 1}: ${batch.length} variants`);
+
+    // Run all updates in the batch concurrently
+    const batchResults = await Promise.all(
+      batch.map(variant => updateVariantWithRetry(variant))
+    );
+
+    results.push(...batchResults);
+  }
+
+  // Summary
   const successful = results.filter(r => r.success).length;
   const failed = results.filter(r => !r.success).length;
-  
-  console.log(`Variant update summary: ${successful} successful, ${failed} failed out of ${variants.length} total`);
-  
+
+  console.log(`Variant update summary: ${successful} successful, ${failed} failed out of ${variants.length}`);
+
   if (failed > 0) {
     console.log('Failed variants:');
     results.filter(r => !r.success).forEach(r => {
       console.log(`  - ${r.variant.external_id}: ${r.error} (${r.attempts} attempts)`);
     });
   }
-  
+
   return results;
 }

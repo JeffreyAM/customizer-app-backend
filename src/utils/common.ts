@@ -95,31 +95,68 @@ export async function fetchWithRetry(url: string, attempt = 1): Promise<any> {
  * @param variantIds 
  * @returns 
  */
+// export async function fetchVariantsByIds(
+//   variantIds: number[]
+// ): Promise<PrintfulProductCatalogVariant[]> {
+//   const variants: PrintfulProductCatalogVariant[] = [];
+
+//   for (const id of variantIds) {
+//     try {
+//       const var1 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}`);
+//       // const var2 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}/availability`);
+//       const var3 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}/prices`);
+
+//       const enriched: PrintfulProductCatalogVariant = {
+//         ...var1.data.data,
+//         // selling_regions: var2.data.data.techniques?.[0]?.selling_regions ?? [],
+//         techniques: var3.data.data.variant?.techniques ?? []
+//       };
+
+//       variants.push(enriched);
+//     } catch (error) {
+//       console.warn(`❌ Failed to fetch variant ${id}:`, error);
+//     }
+//   }
+
+//   return variants;
+// }
 export async function fetchVariantsByIds(
-  variantIds: number[]
+  variantIds: number[],
+  batchSize: number = 10
 ): Promise<PrintfulProductCatalogVariant[]> {
   const variants: PrintfulProductCatalogVariant[] = [];
 
-  for (const id of variantIds) {
-    try {
-      const var1 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}`);
-      // const var2 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}/availability`);
-      const var3 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}/prices`);
+  // Split variant IDs into batches
+  for (let i = 0; i < variantIds.length; i += batchSize) {
+    const batch = variantIds.slice(i, i + batchSize);
 
-      const enriched: PrintfulProductCatalogVariant = {
-        ...var1.data.data,
-        // selling_regions: var2.data.data.techniques?.[0]?.selling_regions ?? [],
-        techniques: var3.data.data.variant?.techniques ?? []
-      };
+    // Process batch concurrently
+    const batchResults = await Promise.all(
+      batch.map(async (id) => {
+        try {
+          const var1 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}`);
+          const var3 = await fetchWithRetry(`${NEXT_PUBLIC_BASE_URL}/api/printful/v2/catalog-variants/${id}/prices`);
 
-      variants.push(enriched);
-    } catch (error) {
-      console.warn(`❌ Failed to fetch variant ${id}:`, error);
-    }
+          const enriched: PrintfulProductCatalogVariant = {
+            ...var1.data.data,
+            techniques: var3.data.data.variant?.techniques ?? [],
+          };
+
+          return enriched;
+        } catch (error) {
+          console.warn(`❌ Failed to fetch variant ${id}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Filter successful results
+    variants.push(...batchResults.filter(Boolean) as PrintfulProductCatalogVariant[]);
   }
 
   return variants;
 }
+
 
 /**
  * update shopify customer metafields name my_design
@@ -184,6 +221,98 @@ export function extractMockupImages(mockupResult: any): MockupVariantsImages[] {
  * @param shopifyProductId 
  * @returns 
  */
+// export async function productVariantAppendMedia(
+//   shopifyProductId: string
+// ): Promise<{ productId: string; variantMedia: ProductVariantAppendMediaInput[] }[]> {
+//   const productId = shopifyProductId;
+//   const numericId = getNumericId(productId);
+//   const payloads: { productId: string; variantMedia: ProductVariantAppendMediaInput[] }[] = [];
+//   const seenPairs = new Set<string>();
+
+//   const allVariants: VariantNode[] = [];
+//   const allMedia: MediaNode[] = [];
+
+//   // Fetch all variants
+//   let variantsAfter: string | null = null;
+//   let hasMoreVariants = true;
+
+//   while (hasMoreVariants) {
+//     const res:any = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
+//       params: { product_id: numericId, variantsAfter: variantsAfter }
+//     });
+
+//     const variantPage = res.data.product.variants;
+//     if (variantPage?.nodes?.length) {
+//       allVariants.push(...variantPage.nodes);
+//     }
+
+//     variantsAfter = variantPage?.pageInfo?.hasNextPage ? variantPage.pageInfo.endCursor : null;
+//     hasMoreVariants = !!variantsAfter;
+//   }
+
+//   // Fetch all media
+//   let mediaAfter: string | null = null;
+//   let hasMoreMedia = true;
+
+//   while (hasMoreMedia) {
+//     const res:any= await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
+//       params: { product_id: numericId, mediaAfter: mediaAfter }
+//     });
+
+//     const mediaPage = res.data.product.media;
+//     if (mediaPage?.nodes?.length) {
+//       allMedia.push(...mediaPage.nodes);
+//     }
+
+//     mediaAfter = mediaPage?.pageInfo?.hasNextPage ? mediaPage.pageInfo.endCursor : null;
+//     hasMoreMedia = !!mediaAfter;
+//   }
+
+//   // Match media.alt to variant.barcode
+//   for (const media of allMedia) {
+//     const alt = media.alt?.trim();
+//     if (!alt || alt.toLowerCase().includes("extra")) continue;
+
+//     // Extract variant IDs from alt (comma-separated)
+//     const altVariantIds = alt.split(",").map(id => id.trim());
+
+//     for (const variant of allVariants) {
+//       const barcode = variant.barcode?.trim();
+//       if (!barcode || !altVariantIds.includes(barcode)) continue;
+
+//       const key = `${variant.id}_${media.id}`;
+//       if (seenPairs.has(key)) continue;
+//       seenPairs.add(key);
+
+//       const input: ProductVariantAppendMediaInput = {
+//         variantId: variant.id,
+//         mediaIds: [media.id]
+//       };
+
+//       const mutation = PRODUCT_VARIANT_APPEND_MEDIA;
+//       const variables = { productId, variantMedia: [input] };
+
+//       try {
+//         const client = await getClient();
+//         const response = await client.request<ProductVariantAppendMediaResponse>(mutation, { variables });
+//         const result = response?.data?.productVariantAppendMedia;
+
+//         if (result?.userErrors.length) {
+//           console.warn("❌ Failed appending media:", result.userErrors.map(e => e.message).join("; "));
+//         } else {
+//           console.log(`✅ Success: ${result?.productVariants.length} variant(s) updated`);
+//           payloads.push({ productId, variantMedia: [input] });
+//         }
+//       } catch (err) {
+//         console.error(`❌ Mutation error for variant ${variant.id}:`, err);
+//       }
+//     }
+//   }
+
+
+//   return payloads;
+// }
+
 export async function productVariantAppendMedia(
   shopifyProductId: string
 ): Promise<{ productId: string; variantMedia: ProductVariantAppendMediaInput[] }[]> {
@@ -197,11 +326,9 @@ export async function productVariantAppendMedia(
 
   // Fetch all variants
   let variantsAfter: string | null = null;
-  let hasMoreVariants = true;
-
-  while (hasMoreVariants) {
-    const res:any = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
-      params: { product_id: numericId, variantsAfter: variantsAfter }
+  while (true) {
+    const res: any = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
+      params: { product_id: numericId, variantsAfter }
     });
 
     const variantPage = res.data.product.variants;
@@ -209,17 +336,18 @@ export async function productVariantAppendMedia(
       allVariants.push(...variantPage.nodes);
     }
 
-    variantsAfter = variantPage?.pageInfo?.hasNextPage ? variantPage.pageInfo.endCursor : null;
-    hasMoreVariants = !!variantsAfter;
+    if (variantPage?.pageInfo?.hasNextPage) {
+      variantsAfter = variantPage.pageInfo.endCursor;
+    } else {
+      break;
+    }
   }
 
   // Fetch all media
   let mediaAfter: string | null = null;
-  let hasMoreMedia = true;
-
-  while (hasMoreMedia) {
-    const res:any= await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
-      params: { product_id: numericId, mediaAfter: mediaAfter }
+  while (true) {
+    const res: any = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/shopify/product`, {
+      params: { product_id: numericId, mediaAfter }
     });
 
     const mediaPage = res.data.product.media;
@@ -227,16 +355,20 @@ export async function productVariantAppendMedia(
       allMedia.push(...mediaPage.nodes);
     }
 
-    mediaAfter = mediaPage?.pageInfo?.hasNextPage ? mediaPage.pageInfo.endCursor : null;
-    hasMoreMedia = !!mediaAfter;
+    if (mediaPage?.pageInfo?.hasNextPage) {
+      mediaAfter = mediaPage.pageInfo.endCursor;
+    } else {
+      break;
+    }
   }
 
-  // Match media.alt to variant.barcode
+  const BATCH_SIZE = 10;
+  let batchInputs: ProductVariantAppendMediaInput[] = [];
+
   for (const media of allMedia) {
     const alt = media.alt?.trim();
     if (!alt || alt.toLowerCase().includes("extra")) continue;
 
-    // Extract variant IDs from alt (comma-separated)
     const altVariantIds = alt.split(",").map(id => id.trim());
 
     for (const variant of allVariants) {
@@ -247,31 +379,51 @@ export async function productVariantAppendMedia(
       if (seenPairs.has(key)) continue;
       seenPairs.add(key);
 
-      const input: ProductVariantAppendMediaInput = {
+      batchInputs.push({
         variantId: variant.id,
-        mediaIds: [media.id]
-      };
+        mediaIds: [media.id],
+      });
 
-      const mutation = PRODUCT_VARIANT_APPEND_MEDIA;
-      const variables = { productId, variantMedia: [input] };
-
-      try {
-        const client = await getClient();
-        const response = await client.request<ProductVariantAppendMediaResponse>(mutation, { variables });
-        const result = response?.data?.productVariantAppendMedia;
-
-        if (result?.userErrors.length) {
-          console.warn("❌ Failed appending media:", result.userErrors.map(e => e.message).join("; "));
-        } else {
-          console.log(`✅ Success: ${result?.productVariants.length} variant(s) updated`);
-          payloads.push({ productId, variantMedia: [input] });
-        }
-      } catch (err) {
-        console.error(`❌ Mutation error for variant ${variant.id}:`, err);
+      if (batchInputs.length >= BATCH_SIZE) {
+        const result = await sendMediaAppendMutation(productId, batchInputs);
+        if (result) payloads.push(result);
+        batchInputs = []; // reset for next batch
       }
     }
   }
 
+  // Final batch if any remaining
+  if (batchInputs.length > 0) {
+    const result = await sendMediaAppendMutation(productId, batchInputs);
+    if (result) payloads.push(result);
+  }
 
   return payloads;
 }
+
+// Handles mutation sending with error handling and logging
+async function sendMediaAppendMutation(
+  productId: string,
+  variantMedia: ProductVariantAppendMediaInput[]
+): Promise<{ productId: string; variantMedia: ProductVariantAppendMediaInput[] } | null> {
+  try {
+    const client = await getClient();
+    const mutation = PRODUCT_VARIANT_APPEND_MEDIA;
+    const variables = { productId, variantMedia };
+
+    const response = await client.request<ProductVariantAppendMediaResponse>(mutation, { variables });
+    const result = response?.data?.productVariantAppendMedia;
+
+    if (result?.userErrors.length) {
+      console.warn("❌ Failed batch:", result.userErrors.map(e => e.message).join("; "));
+      return null;
+    } else {
+      console.log(`✅ Success: ${result?.productVariants.length} variant(s) updated`);
+      return { productId, variantMedia };
+    }
+  } catch (err) {
+    console.error("❌ Mutation error:", err);
+    return null;
+  }
+}
+

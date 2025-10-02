@@ -367,7 +367,7 @@ export async function POST(req: NextRequest) {
       await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
     }
 
-    const payload = await productVariantAppendMedia(shopifyProduct.product.id);
+    await productVariantAppendMedia(shopifyProduct.product.id);
     
     // update mydesig metafields
     await updateMyDesign(customerId,edmTemplateId).catch((err) => console.error("Update My Design Metafields on Background Failed:", err));
