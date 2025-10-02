@@ -377,15 +377,6 @@ export async function POST(req: NextRequest) {
       await publishShopifyProduct(shopifyProduct.product.id);
     }
 
-    // Run printful product
-    // await syncShopifyProductToPrintful(
-    //   // client,
-    //   mockups,
-    //   edmTemplateId,
-    //   availablePrintfulProductVariants,
-    //   shopifyProduct.product.id
-    // ).catch((err) => console.error("Background sync error:", err));
-    // await delay(10000);
     return NextResponse.json({ 
       productCreate: shopifyProduct,
       availablePrintfulProductVariants: availablePrintfulProductVariants

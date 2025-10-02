@@ -44,39 +44,6 @@ export async function syncShopifyProductToPrintful(
     const shopifyProduct = shopifyProductResponse.data.product;
     shopifyProduct.variants.nodes = await fetchAllVariants(client, shopifyProductID);
 
-    // const { data: templates, error: templatesError } = await supabase
-    //   .from("templates")
-    //   .select("*")
-    //   .eq("template_id", edmTemplateId)
-    //   .order("id", { ascending: false })
-    //   .limit(1);
-
-    // if (templatesError) {
-    //   throw new Error("Failed to fetch templates: " + JSON.stringify(templatesError));
-    // }
-
-    // const { data: mockupTasks, error: mockupTasksError } = await supabase
-    //   .from("mockup_tasks")
-    //   .select("*")
-    //   .eq("template_id", templates?.[0]?.id)
-    //   .order("id", { ascending: false })
-    //   .limit(1);
-
-    // if (mockupTasksError) {
-    //   throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupTasksError));
-    // }
-
-    // const { data: mockupResults, error: mockupResultsError } = await supabase
-    //   .from("mockup_results")
-    //   .select("*")
-    //   .eq("task_key", mockupTasks?.[0]?.task_key)
-    //   .order("id", { ascending: false })
-    //   .limit(1);
-
-    // if (mockupResultsError) {
-    //   throw new Error("Failed to fetch mockup results: " + JSON.stringify(mockupResultsError));
-    // }
-
     const result = await buildSyncPayload(shopifyProduct, printfulVariants, edmTemplateId, mockupResults);
 
     const variants = result.sync_variants;
@@ -252,84 +219,7 @@ async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedO
  * @param variants 
  * @returns 
  */
-// async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
-//   const MAX_RETRIES = 10;
-//   const NOT_FOUND_RETRY_DELAY = 5000; // 5 seconds for not found
-  
-//   const results: VariantUpdateResult[] = [];
 
-//   for (const variant of variants) {
-//     let attempt = 0;
-//     let success = false;
-//     let response: any;
-//     let lastError: string = '';
-    
-//     while (attempt < MAX_RETRIES && !success) {
-//       try {
-        
-//         response = await axios.put(
-//           `${NEXT_PUBLIC_BASE_URL}/api/printful//sync/variant/@${getNumericId(variant.external_id)}`,
-//           variant
-//         );
-
-//         success = true;
-        
-//       } catch (error) {
-//         attempt++;
-        
-//         if (axios.isAxiosError(error)) {
-//           const status = error.response?.status;
-//           const errorMessage = error.response?.data?.error?.message || error.message;
-//           lastError = `${status}: ${errorMessage}`;
-          
-//           // Only handle 404 errors with retries
-//           if (status === 404) {
-//             console.log(`Variant not found (attempt ${attempt}/${MAX_RETRIES}): ${variant.external_id}`);
-            
-//             if (attempt < MAX_RETRIES) {
-//               console.log(`Retrying in ${NOT_FOUND_RETRY_DELAY}ms... (variant might still be syncing)`);
-//               await delay(NOT_FOUND_RETRY_DELAY);
-//             } else {
-//               console.error(`Variant not found after ${MAX_RETRIES} attempts: ${variant.external_id}`);
-//               break;
-//             }
-//           } else {
-//             // All other errors - don't retry, just fail immediately
-//             console.error(`Error ${status}: ${errorMessage} - ${variant.external_id}`);
-//             break;
-//           }
-//         }
-//       }
-//     }
-    
-//     // Add result for this variant
-//     results.push({
-//       variant,
-//       success,
-//       response: success ? response.data : undefined,
-//       error: success ? undefined : lastError,
-//       attempts: attempt
-//     });
-//   }
-  
-//   // Log summary
-//   const successful = results.filter(r => r.success).length;
-//   const failed = results.filter(r => !r.success).length;
-  
-//   console.log(`Variant update summary: ${successful} successful, ${failed} failed out of ${variants.length} total`);
-  
-//   if (failed > 0) {
-//     console.log('Failed variants:');
-//     results.filter(r => !r.success).forEach(r => {
-//       console.log(`  - ${r.variant.external_id}: ${r.error} (${r.attempts} attempts)`);
-//     });
-//   }
-  
-//   return results;
-// }
-
-
-// Retry logic per variant
 async function updateVariantWithRetry(variant: any): Promise<VariantUpdateResult> {
   let attempt = 0;
   let success = false;
