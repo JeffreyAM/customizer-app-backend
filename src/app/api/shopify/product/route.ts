@@ -21,9 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stringify } from "querystring";
 
 const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-const shopify = getShopify();
-const session = await getSession();
-const client = new shopify.clients.Graphql({ session });
+const client = await getClient();
 
 // split array to chunks
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -75,11 +73,11 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
         name: capitalize(v.size || "Default"),
       });
     }
-    const sku = `${edmTemplateId}_${v.catalog_product_id}_${v.color || "default"}_${v.size || "default"}`.toLowerCase();
+    const sku = `${edmTemplateId}_${v.product_id==null?v.catalog_product_id:v.product_id}_${v.color || "default"}_${v.size || "default"}`.toLowerCase();
 
     return {
       optionValues,
-      price: String(selPrice(v.techniques[0].price) || "0.00"),
+      price: String(selPrice(v.price==null?v.techniques[0].price:v.price) || "0.00"),
       barcode: v.id.toString(),
       metafields: [
         {
@@ -100,7 +98,7 @@ function buildProductOptionsAndVariants(variants: any[],edmTemplateId: any) {
 
 // Update product variants in Shopify
 async function bulkVariantOperation(
-  client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
+  // client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
   productId: string,
   variants: any[],
   operation: "productVariantsBulkCreate" | "productVariantsBulkUpdate",
@@ -130,7 +128,7 @@ async function bulkVariantOperation(
 }
 
 async function createShopifyProduct(
-  client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
+  // client: InstanceType<ReturnType<typeof getShopify>["clients"]["Graphql"]>,
   productOptions: Array<Record<string, any>>,
   MockupVariantsImages: MockupVariantsImages[],
   // images: string[],
@@ -178,9 +176,6 @@ async function createShopifyProduct(
 }
 
 async function publishShopifyProduct(productID: string) {
-  const shopify = getShopify();
-  const session = await getSession();
-  const client = new shopify.clients.Graphql({ session });
 
   const mutation = PRODUCT_PUBLISH;
 
@@ -257,8 +252,6 @@ export async function GET(req: NextRequest) {
     const variantsAfter = req.nextUrl.searchParams.get("variantsAfter");
     let direction = req.nextUrl.searchParams.get("direction");
 
-    const client = await getClient();
-
     let query;
     let variables = {};
     let response;
@@ -314,8 +307,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { product_id, mockups, edmTemplateId, availableVariantIds,customerId, customDesignName } = body;
-  // const customerId = '9067849810224'
+  const { product_id, mockups, edmTemplateId, availableVariantIds, customDesignName = "" } = body;
+  const customerId = '9067849810224'
   if (!product_id || !mockups || !edmTemplateId || !customerId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
@@ -336,7 +329,9 @@ export async function POST(req: NextRequest) {
 
     // const shopifyProduct = await createShopifyProduct(client, productOptions, images, edmTemplateId, printfulProduct);
 
-    const shopifyProduct = await createShopifyProduct(client, productOptions, extractMockupImages(mockups), edmTemplateId, printfulProductData,customerId,customDesignName);
+    const shopifyProduct = await createShopifyProduct(
+      // client,
+       productOptions, extractMockupImages(mockups), edmTemplateId, printfulProductData,customerId,customDesignName);
 
     if (!shopifyProduct) {
       return NextResponse.json({ error: "Invalid response from Shopify" }, { status: 502 });
@@ -347,11 +342,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Update the first created Shopify variant with correct price
+    updateMyDesign(customerId,edmTemplateId).catch((err) => console.error("Update My Design Metafields on Background Failed:", err));
     const createdShopifyVariant = shopifyProduct.product.variants.nodes[0];
     const matchingVariant = shopifyVariants[0]; // Assuming the first variant is the one we want to update
 
     const updatedVariant = await bulkVariantOperation(
-      client,
+      // client,
       shopifyProduct.product.id,
       [{ ...matchingVariant, id: createdShopifyVariant.id }], // Update the variant ID
       "productVariantsBulkUpdate"
@@ -364,13 +360,12 @@ export async function POST(req: NextRequest) {
     // Create product variants if more than one
     if (shopifyVariants.length > 1) {
       const variantsToCreate = shopifyVariants.slice(1); // Skip the first variant as it's already created
-      await bulkVariantOperation(client, shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
+      await bulkVariantOperation(
+        // client, 
+        shopifyProduct.product.id, variantsToCreate, "productVariantsBulkCreate");
     }
     // append image in the background
     productVariantAppendMedia(shopifyProduct.product.id).catch((err) => console.error("Failed to Append Images:", err));
-    
-    // update mydesig metafields in the background
-    updateMyDesign(customerId,edmTemplateId).catch((err) => console.error("Update My Design Metafields on Background Failed:", err));
 
     // Publish the product to default "Online Store" if created successfully
     if (shopifyProduct.product.id) {

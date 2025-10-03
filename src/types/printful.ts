@@ -151,11 +151,13 @@ export type PrintfulProductCatalogResponse = {
 export interface PrintfulProductCatalogVariant {
   id: number;
   catalog_product_id: number;
+  product_id: number;
   name: string;
   size: string;
   color: string;
   color_code: string;
   color_code2: string;
+  price: string;
   image: string;
   _links: {
     self: { href: string };

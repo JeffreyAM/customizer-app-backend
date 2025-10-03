@@ -1,5 +1,5 @@
 import { syncShopifyProductToPrintful } from "@/lib/syncShopifyToPrinftul";
-import { fetchVariantsByIds } from "@/utils/common";
+import { delay, fetchVariantsByIds } from "@/utils/common";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       shopifyProduct.product.id
     );
 
+    await delay(10000);
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
