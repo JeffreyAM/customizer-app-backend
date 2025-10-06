@@ -205,7 +205,7 @@ async function buildSyncPayload(
 async function fetchExtraOptionForEmbroidery(templateId: any): Promise<SelectedOption[]> {
 
   try {
-    const res = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful//product-templates/${templateId}`);
+    const res = await axios.get(`${NEXT_PUBLIC_BASE_URL}/api/printful/product-templates/${templateId}`);
     const extraOpt = res.data.result;
     
     return extraOpt;
@@ -227,7 +227,7 @@ async function updateVariantWithRetry(variant: any): Promise<VariantUpdateResult
   let lastError = '';
 
   const MAX_RETRIES = 10;
-  const NOT_FOUND_RETRY_DELAY = 5000; // 5 seconds
+  const NOT_FOUND_RETRY_DELAY = 3000;
 
 
   while (attempt < MAX_RETRIES && !success) {
@@ -276,7 +276,7 @@ async function updateVariantWithRetry(variant: any): Promise<VariantUpdateResult
 // Main function to process variants in batches
 export async function updateVariantsWithRetry(variants: any[]): Promise<VariantUpdateResult[]> {
   const results: VariantUpdateResult[] = [];
-   const BATCH_SIZE = 5;
+  const BATCH_SIZE = 5;
 
   for (let i = 0; i < variants.length; i += BATCH_SIZE) {
     const batch = variants.slice(i, i + BATCH_SIZE);
