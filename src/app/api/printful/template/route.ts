@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) {
       console.error("Database error:", dbError);
@@ -148,10 +148,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        // template: savedTemplate,
-        // printfulData: templateData,
-        // userId: userId, // Include the user ID in the response
-        // details: "Creating Shopify Product in the background",
+        template: savedTemplate,
+        printfulData: templateData,
+        userId: userId, // Include the user ID in the response
+        details: "Creating Shopify Product in the background",
         // shopifyProduct: createProduct.productCreate.product || createProduct,
       },
       {
