@@ -1,5 +1,6 @@
 # Customized Girl EDM System Flow
 ## **Embedded Design Maker**
+## Use Update_Demo_guide.pdf as reference for the actual steps on how to save a design
 
 ## 1. Product Catalog Selection
 
