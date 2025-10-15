@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/session-utils";
 import { getShopify } from "@/lib/shopify";
 import { PRODUCT_VARIANT_APPEND_MEDIA } from "@/mutations/shopify/productVariantAppendMedia";
+import { GET_VARIANT_STOCK } from "@/queries/shopify/getVariantStock";
 import { MediaNode, MockupResults, MockupVariantsImages, PrintfulProductCatalogResponse, PrintfulProductCatalogVariant, ProductVariantAppendMediaInput, ProductVariantAppendMediaResponse, VariantNode } from "@/types";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -311,4 +312,77 @@ export async function productVariantAppendMedia(
   }
 
   return payloads;
+}
+
+/**
+ * Checks Printful stock for a single variant with retries.
+ */
+async function checkPrintfulStock(
+  variantId: string,
+  maxRetries = 5,
+  retryDelayMs = 5000,
+) {
+
+  const client = await getClient();
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await client.request<any>(GET_VARIANT_STOCK, {
+        variables: { variantId: variantId},
+      });
+      const edges =
+        response.data?.productVariant?.inventoryItem?.inventoryLevels?.edges || [];
+
+      const printfulLevel = edges.find(
+        (edge: any) => edge.node.location.name === "Printful"
+      );
+
+      const availableQuantity =
+        printfulLevel?.node?.quantities?.[0]?.quantity ?? 0;
+
+      console.log(
+        `Variant ${variantId} Attempt ${attempt}: Printful stock = ${availableQuantity}`
+      );
+
+      if (availableQuantity > 0) {
+        return { variantId, available: true, quantity: availableQuantity };
+      }
+
+      if (attempt < maxRetries) {
+        console.log(`⏳ Retrying in ${retryDelayMs / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    } catch (error) {
+      console.error(`❌ Error checking variant ${variantId}:`, error);
+      if (attempt < maxRetries)
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+  }
+
+  return { variantId, available: false, quantity: 0 };
+}
+
+/**
+ * Processes variants in batches of 10.
+ */
+export async function batchCheckPrintfulStock(
+  variants: any,
+  batchSize = 10
+) {
+  const results: any[] = [];
+
+  for (let i = 0; i < variants.length; i += batchSize) {
+    const batch = variants.slice(i, i + batchSize);
+
+    console.log(
+      `\n🧩 Processing batch ${Math.floor(i / batchSize) + 1} (${batch.length} variants)`
+    );
+
+    const batchResults = await Promise.all(
+      batch.map((v:any) => checkPrintfulStock(v.external_id))
+    );
+
+    results.push(...batchResults);
+  }
+
+  return results;
 }

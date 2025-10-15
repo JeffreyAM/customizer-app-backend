@@ -4,7 +4,7 @@ import axios from "axios";
 import { getShopify } from "./shopify";
 import { supabase } from "./supabase";
 import { GraphQLClientResponse } from "@shopify/shopify-api";
-import { delay, getClient, getNumericId } from "@/utils/common";
+import { batchCheckPrintfulStock, delay, getClient, getNumericId } from "@/utils/common";
 import { getSession } from "./session-utils";
 import { NextResponse } from "next/server";
 
@@ -49,6 +49,8 @@ export async function syncShopifyProductToPrintful(
     const variants = result.sync_variants;
 
     const syncProduct = await updateVariantsWithRetry(variants);
+
+    await batchCheckPrintfulStock(variants);
 
     // If no variants or all failed
     if (!syncProduct || syncProduct.length === 0 || !syncProduct.some(v => v.success)) {
