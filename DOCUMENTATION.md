@@ -56,6 +56,20 @@ Creates an EDM session token and generates a unique `templateId` for the selecte
 "external_product_id": "71_2025-10-14-08-32-54-123-cd-edm"
 }
 ```
+#### **Response
+```json
+{
+    "code": 200,
+    "result": {
+        "nonce": {
+            "nonce": "XiGR4NWCBXMyCSQZXYdAM76XzanJBXRL",
+            "template_id": 91393525,
+            "expires_at": 1760711794
+        }
+    },
+    "extra": []
+}
+```
 ## 2. 🛍️ Usage of Catalog
 - Products displayed on [design.customizedgirl.com/pages/product-catalog](https://design.customizedgirl.com/pages/product-catalog) are sourced from **Printful**.
 - The backend uses the endpoint: `GET /api/printful/v2/catalog-products`
@@ -89,12 +103,28 @@ The mockup represents the final product preview with the user’s custom design.
 #### **Request Body Example**
 ```json
 {
-  "template_id": "templateId from Supabase Templates table",
-  "product_template_id": "Printful Template ID",
-  "catalog_product_id": "Printful Catalog Product ID",
-  "variant_ids": ["variantId_1", "variantId_2"]
+  "template_id":"edc15c1c-1f89-449f-9a6f-9ccc98bfb583",
+  "product_template_id":"94620359",
+  "catalog_product_id":438,
+  "variant_ids":[12634,15849,16249,16286]
 }
 ```
+
+#### **Response**
+```json
+{
+    "task": {
+        "id": "f7069461-42d0-4751-9fa2-be1a584295a7",
+        "task_key": "gt-834033208",
+        "template_id": "edc15c1c-1f89-449f-9a6f-9ccc98bfb583",
+        "created_at": "2025-10-17T09:48:23.65853+00:00",
+        "status": "pending",
+        "completed_at": null
+    }
+}
+
+```
+
 
 ### Shopify Frontend Integration
 
@@ -133,6 +163,48 @@ The mockup represents the final product preview with the user’s custom design.
   - This endpoint creates a new Shopify product using product information and mockup images retrieved from **Printful**.  
   - The backend transforms Printful data into Shopify’s format and uses the Shopify Admin API to create the product.
 
+  - To get the mockups use
+## **GET `/api/mockup-task/[key]`
+
+### **Reponse**
+```json
+{
+  "task": {},
+  "mockup_results": {
+    "mockups": [
+      {
+        "extra": [
+          {
+            "url": "https://printful-upload.s3-accelerate.amazonaws.com/tmp/a49e620b764311d96213f8f94271c7ab/unisex-classic-tee-maroon-front-68f210e45f037.jpg",
+            "title": "Front",
+            "option": "Front",
+            "option_group": "Flat",
+            "generator_mockup_id": 9214
+          },
+        ],
+        "placement": "front",
+        "mockup_url": "https://printful-upload.s3-accelerate.amazonaws.com/tmp/5a69d141096555cbd18a72891129e3e0/unisex-classic-tee-maroon-front-68f210e45e3d2.jpg",
+        "variant_ids": [
+            12634,
+            16249
+        ],
+      }
+    ],
+    "printfiles": [
+      {
+          "url": "https://printful-upload.s3-accelerate.amazonaws.com/tmp/19349ca9b12790af452a31a7f9f44d8f/printfile_front.png",
+          "placement": "front",
+          "variant_ids": [
+              12634,
+              16249,
+              15849,
+              16286
+          ]
+      }
+    ]
+  }
+}
+```
 ### **Request Body Example**
 ```json
 {
